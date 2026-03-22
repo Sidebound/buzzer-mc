@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Realistic Buzzer Messenger</title>
+    
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-title" content="Buzzer">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -15,7 +21,7 @@
             touch-action: none; 
             font-family: sans-serif;
 
-            /* ★iOS Safariでの文字選択とメニュー表示を禁止しますわ */
+            /* iOS Safariでの文字選択とメニュー表示を禁止 */
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
@@ -31,7 +37,7 @@
             border-radius: 50%;
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
 
-            /* ★画像のドラッグを禁止します */
+            /* 画像のドラッグを禁止 */
             -webkit-user-drag: none;
         }
 
@@ -50,6 +56,7 @@
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
+            /* ★しぇいさまこだわりの「もう一つ内側の縁」サイズですわ */
             width: 50%; height: 50%;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0);
@@ -78,38 +85,4 @@
             overflow-y: auto;
         }
         #settings-panel.open { right: 0; }
-        .setting-item { margin-bottom: 20px; text-align: center; }
-        
-        input, select { 
-            width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; 
-            background: #333; border: 1px solid #555; color: white; border-radius: 5px; 
-            font-size: 16px;
-        }
-        label { display: block; text-align: left; margin-bottom: 5px; font-size: 14px; color: #ccc; }
-        button { width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        
-        #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
-        #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
-
-        #qrcode-container {
-            background: white;
-            padding: 15px;
-            display: inline-block;
-            margin-top: 10px;
-            border-radius: 8px;
-        }
-        #qrcode img {
-            width: 180px !important;
-            height: 180px !important;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="buzzer-container">
-        <div id="tap-area">
-            <div id="buzzer-button-visual"></div>
-        </div>
-    </div>
-
-    <div
+        .setting-item { margin-bottom: 20px;
