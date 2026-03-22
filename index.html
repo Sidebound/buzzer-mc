@@ -31,7 +31,7 @@
             position: relative;
             width: 90vw; height: 90vw;
             max-width: 500px; max-height: 500px;
-            background-image: url('image_buzzer.png'); 
+            background-image: url('image_6.png'); 
             background-size: cover;
             background-position: center;
             border-radius: 50%;
@@ -48,6 +48,8 @@
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             z-index: 5;
+            /* Android Chromeでの青いハイライトを消します */
+            outline: none;
         }
 
         #buzzer-button-visual {
@@ -174,6 +176,10 @@
     const buzzerAudio = document.getElementById('buzzer-sound');
 
     function toggleSettings() {
+        // ★設定を閉じる際に、入力欄のフォーカスを強制解除してキーボードを仕舞いますわ
+        if (document.getElementById('settings-panel').classList.contains('open')) {
+            document.activeElement.blur();
+        }
         document.getElementById('settings-panel').classList.toggle('open');
         document.getElementById('settings-overlay').classList.toggle('open');
     }
@@ -237,7 +243,6 @@
     }
 
     function startBuzzer() {
-        // ★キレのある連打のため、再生位置を0に戻してから再生しますわ
         buzzerAudio.currentTime = 0;
         buzzerAudio.play().catch(e => { console.log("要操作"); });
     }
@@ -249,7 +254,7 @@
 
     const area = document.getElementById('tap-area');
 
-    // ★SafariのダブルタップズームをJavaScriptで強制遮断しますわ
+    // ★Safari対策のダブルタップ無効化（継続）
     let lastTouchEnd = 0;
     document.addEventListener('touchend', (e) => {
         const now = (new Date()).getTime();
@@ -259,14 +264,18 @@
         lastTouchEnd = now;
     }, false);
 
-    // ★指2本での操作も封じて、盤石な構えといたします
     document.addEventListener('touchstart', (e) => {
         if (e.touches.length > 1) {
             e.preventDefault();
         }
+        // ★入力欄以外を触ったらフォーカスを外す（キーボード対策）
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+            document.activeElement.blur();
+        }
     }, { passive: false });
 
     area.addEventListener('pointerdown', (e) => {
+        // ★ここでpreventDefaultすることで、Android Chromeのバイブレーションを抑制しますわ
         e.preventDefault();
         startBuzzer();
         if (conn) conn.send('ON');
