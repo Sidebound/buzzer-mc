@@ -35,7 +35,6 @@
             position: relative;
             width: 90vw; height: 90vw;
             max-width: 500px; max-height: 500px;
-            /* ★画像名を image_buzzer.png に変更いたしました */
             background-image: url('image_buzzer.png'); 
             background-size: cover;
             background-position: center;
@@ -252,6 +251,10 @@
 
     const area = document.getElementById('tap-area');
 
+    // --- ★ここから鉄壁の不具合封じ込めロジック ---
+
+    const area = document.getElementById('tap-area');
+
     // 1. Safariのピンチズーム・ジェスチャーを強制無効化
     document.addEventListener('gesturestart', (e) => e.preventDefault(), false);
     document.addEventListener('gesturechange', (e) => e.preventDefault(), false);
@@ -267,8 +270,7 @@
 
     // 3. ピンチズーム禁止 & キーボード対策
     document.addEventListener('touchstart', (e) => {
-        if (e.touches.length > 1) { e.preventDefault(); } // マルチタッチズーム禁止
-        // 入力欄以外を触ったらフォーカスを外す
+        if (e.touches.length > 1) { e.preventDefault(); } 
         if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
             document.activeElement.blur();
         }
@@ -276,7 +278,6 @@
 
     // 4. ブザー操作（Androidのバイブレーション抑制を含む）
     area.addEventListener('pointerdown', (e) => {
-        // ★preventDefaultでAndroid Chromeの自動バイブレーションを抑制
         e.preventDefault();
         startBuzzer();
         if (conn) conn.send('ON');
@@ -291,6 +292,11 @@
     area.addEventListener('pointerleave', (e) => {
         stopBuzzer();
         if (conn) conn.send('OFF');
+    }, false);
+
+    // ★【新規追加】長押し時のメニュー表示と、それに伴うバイブを禁止します
+    area.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
     }, false);
 
 </script>
