@@ -12,8 +12,13 @@
             background-color: #000;
             display: flex; justify-content: center; align-items: center;
             height: 100vh; overflow: hidden;
-            touch-action: none;
+            touch-action: none; 
             font-family: sans-serif;
+
+            /* ★iOS Safariでの文字選択とメニュー表示を禁止しますわ */
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .buzzer-container {
@@ -25,13 +30,16 @@
             background-position: center;
             border-radius: 50%;
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+
+            /* ★画像のドラッグを禁止します */
+            -webkit-user-drag: none;
         }
 
         #tap-area {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 55%; height: 55%; /* 広範囲タップ */
+            width: 55%; height: 55%; 
             border-radius: 50%;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
@@ -42,7 +50,7 @@
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 50%; height: 50%; /* 視覚フィードバックは中央のみ */
+            width: 50%; height: 50%;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0);
             transition: background-color 0.05s;
@@ -83,7 +91,6 @@
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
         #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
 
-        /* QRコードを表示しやすく大きく調整いたしました */
         #qrcode-container {
             background: white;
             padding: 15px;
@@ -105,145 +112,4 @@
         </div>
     </div>
 
-    <div id="settings-icon" onclick="toggleSettings()">⚙</div>
-
-    <div id="settings-panel">
-        <div style="text-align: right; cursor: pointer;" onclick="toggleSettings()">✖ 閉じる</div>
-        <h3>通信設定</h3>
-        
-        <div class="setting-item">
-            <p>招待用QRコード</p>
-            <div id="qrcode-container"><div id="qrcode"></div></div>
-            <p><small id="my-id-display">ID発行中...</small></p>
-        </div>
-        
-        <hr>
-
-        <div class="setting-item">
-            <label for="sound-select">自分の端末の音色:</label>
-            <select id="sound-select" onchange="changeSound()">
-                <option value="ブザー.mp3">ブザー １</option>
-                <option value="音2.mp3">ベル ２（準備中）</option>
-                <option value="音3.mp3">ベル ３（準備中）</option>
-            </select>
-        </div>
-
-        <div class="setting-item">
-            <p>相手のIDを入力:</p>
-            <input type="text" id="peer-id" placeholder="8文字のIDを入力">
-            <button onclick="connectToPeer()">接続する</button>
-        </div>
-        <div class="setting-item">
-            <p><span id="status-light"></span> <span id="status">待機中</span></p>
-        </div>
-    </div>
-
-    <audio id="buzzer-sound" src="ブザー.mp3" loop prefetch></audio>
-
-<script>
-    // 8文字の視認性の高いIDを生成しますわ（0, 1, I, Oを除外）
-    function generateShortId() {
-        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-        let res = '';
-        for (let i = 0; i < 8; i++) {
-            res += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return res;
-    }
-
-    const myId = generateShortId();
-    const peer = new Peer(myId);
-    let conn;
-    let qrcode = null;
-    const buzzerAudio = document.getElementById('buzzer-sound');
-
-    function toggleSettings() {
-        document.getElementById('settings-panel').classList.toggle('open');
-    }
-
-    function changeSound() {
-        const selectedSound = document.getElementById('sound-select').value;
-        buzzerAudio.src = selectedSound;
-        buzzerAudio.load();
-    }
-
-    peer.on('open', (id) => { 
-        document.getElementById('my-id-display').innerText = "ID: " + id; 
-        const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
-        
-        if (!qrcode) {
-            qrcode = new QRCode(document.getElementById("qrcode"), {
-                text: inviteUrl,
-                width: 256,
-                height: 256,
-                correctLevel : QRCode.CorrectLevel.L // ドットを粗くして読み取りやすくします
-            });
-        } else {
-            qrcode.makeCode(inviteUrl);
-        }
-    });
-
-    window.addEventListener('load', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetId = urlParams.get('id');
-        if (targetId) {
-            document.getElementById('status').innerText = "自動接続を試みています...";
-            setTimeout(() => {
-                conn = peer.connect(targetId.toUpperCase());
-                setupConnection();
-            }, 1500);
-        }
-    });
-
-    peer.on('connection', (c) => {
-        conn = c;
-        setupConnection();
-    });
-
-    function connectToPeer() {
-        const id = document.getElementById('peer-id').value.toUpperCase();
-        if(!id) return;
-        conn = peer.connect(id);
-        setupConnection();
-    }
-
-    function setupConnection() {
-        conn.on('open', () => {
-            document.getElementById('status-light').classList.add('connected');
-            document.getElementById('status').innerText = "接続完了！";
-            setTimeout(toggleSettings, 1000);
-        });
-        conn.on('data', (data) => {
-            if (data === 'ON') startBuzzer();
-            else if (data === 'OFF') stopBuzzer();
-        });
-    }
-
-    function startBuzzer() {
-        buzzerAudio.play().catch(e => { console.log("要操作"); });
-        if (navigator.vibrate) navigator.vibrate(200);
-    }
-
-    function stopBuzzer() {
-        buzzerAudio.pause();
-        buzzerAudio.currentTime = 0;
-    }
-
-    const area = document.getElementById('tap-area');
-    area.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        startBuzzer();
-        if (conn) conn.send('ON');
-    });
-    area.addEventListener('pointerup', (e) => {
-        e.preventDefault();
-        stopBuzzer();
-        if (conn) conn.send('OFF');
-    });
-    area.addEventListener('pointerleave', (e) => {
-        stopBuzzer();
-        if (conn) conn.send('OFF');
-    });
-</script>
-</body>
-</html>
+    <div
