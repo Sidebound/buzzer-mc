@@ -71,11 +71,10 @@
             cursor: pointer; z-index: 10;
         }
 
-        /* ★設定パネルが開いている時だけ現れる「見えない壁」ですわ */
         #settings-overlay {
             position: fixed; top: 0; left: 0;
             width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.3); /* ほんのり暗くして集中力を高めます */
+            background: rgba(0,0,0,0.3); 
             opacity: 0; visibility: hidden;
             transition: opacity 0.3s;
             z-index: 15;
@@ -174,7 +173,6 @@
     let qrcode = null;
     const buzzerAudio = document.getElementById('buzzer-sound');
 
-    // ★オーバーレイも含めてトグルするようにいたしました
     function toggleSettings() {
         document.getElementById('settings-panel').classList.toggle('open');
         document.getElementById('settings-overlay').classList.toggle('open');
@@ -239,6 +237,8 @@
     }
 
     function startBuzzer() {
+        // ★キレのある連打のため、再生位置を0に戻してから再生しますわ
+        buzzerAudio.currentTime = 0;
         buzzerAudio.play().catch(e => { console.log("要操作"); });
     }
 
@@ -248,7 +248,23 @@
     }
 
     const area = document.getElementById('tap-area');
-    area.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
+    // ★SafariのダブルタップズームをJavaScriptで強制遮断しますわ
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+        const now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) {
+            e.preventDefault(); 
+        }
+        lastTouchEnd = now;
+    }, false);
+
+    // ★指2本での操作も封じて、盤石な構えといたします
+    document.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive: false });
 
     area.addEventListener('pointerdown', (e) => {
         e.preventDefault();
