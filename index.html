@@ -13,14 +13,12 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        /* ★システム側のジェスチャー・バイブ判定を根こそぎ拒否 */
         * {
             touch-action: none !important;
             -webkit-text-size-adjust: none;
             -webkit-user-select: none !important;
             user-select: none !important;
             -webkit-touch-callout: none !important;
-            /* Android Chromeでの長押し時の青いハイライトも消去 */
             -webkit-tap-highlight-color: transparent !important;
         }
 
@@ -153,7 +151,6 @@
     </div>
 
 <script>
-    // ★Androidのバイブ機能をプログラム的に殺却
     if (navigator.vibrate) {
         navigator.vibrate = function() { return false; };
     }
@@ -257,7 +254,6 @@
         if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { document.activeElement.blur(); }
     }, { passive: false });
 
-    // ★pointerdownで即座にデフォルト動作（バイブ含む）を奪い取る
     area.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         e.stopPropagation();
