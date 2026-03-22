@@ -13,24 +13,29 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
+        /* ★全要素に対してズームやブラウザ標準のジェスチャー操作を禁止しますわ */
+        * {
+            touch-action: none;
+            -webkit-text-size-adjust: none;
+        }
+
         html, body {
             margin: 0; padding: 0;
             background-color: #000;
             display: flex; justify-content: center; align-items: center;
             height: 100vh; width: 100vw;
             overflow: hidden;
-            touch-action: none; 
             font-family: sans-serif;
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
-            -webkit-text-size-adjust: 100%;
         }
 
         .buzzer-container {
             position: relative;
             width: 90vw; height: 90vw;
             max-width: 500px; max-height: 500px;
+            /* ★画像名を image_buzzer.png に変更いたしました */
             background-image: url('image_buzzer.png'); 
             background-size: cover;
             background-position: center;
@@ -48,7 +53,6 @@
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             z-index: 5;
-            /* Android Chromeでの青いハイライトを消します */
             outline: none;
         }
 
@@ -92,6 +96,8 @@
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 20;
             overflow-y: auto;
+            /* パネル内だけは垂直スクロールを許可します */
+            touch-action: pan-y;
         }
         #settings-panel.open { right: 0; }
         .setting-item { margin-bottom: 20px; text-align: center; }
@@ -100,6 +106,8 @@
             width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; 
             background: #333; border: 1px solid #555; color: white; border-radius: 5px; 
             font-size: 16px !important;
+            /* ★入力項目は操作を許可します */
+            touch-action: auto;
         }
         label { display: block; text-align: left; margin-bottom: 5px; font-size: 14px; color: #ccc; }
         button { width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -160,12 +168,11 @@
     <audio id="buzzer-sound" src="ブザー.mp3" loop prefetch></audio>
 
 <script>
+    // --- ユーティリティ & PeerJS ---
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let res = '';
-        for (let i = 0; i < 8; i++) {
-            res += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
+        for (let i = 0; i < 8; i++) { res += chars.charAt(Math.floor(Math.random() * chars.length)); }
         return res;
     }
 
@@ -176,7 +183,6 @@
     const buzzerAudio = document.getElementById('buzzer-sound');
 
     function toggleSettings() {
-        // ★設定を閉じる際に、入力欄のフォーカスを強制解除してキーボードを仕舞いますわ
         if (document.getElementById('settings-panel').classList.contains('open')) {
             document.activeElement.blur();
         }
@@ -185,22 +191,15 @@
     }
 
     function changeSound() {
-        const selectedSound = document.getElementById('sound-select').value;
-        buzzerAudio.src = selectedSound;
+        buzzerAudio.src = document.getElementById('sound-select').value;
         buzzerAudio.load();
     }
 
     peer.on('open', (id) => { 
         document.getElementById('my-id-display').innerText = "ID: " + id; 
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
-        
         if (!qrcode) {
-            qrcode = new QRCode(document.getElementById("qrcode"), {
-                text: inviteUrl,
-                width: 256,
-                height: 256,
-                correctLevel : QRCode.CorrectLevel.L 
-            });
+            qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 256, height: 256 });
         } else {
             qrcode.makeCode(inviteUrl);
         }
@@ -218,10 +217,7 @@
         }
     });
 
-    peer.on('connection', (c) => {
-        conn = c;
-        setupConnection();
-    });
+    peer.on('connection', (c) => { conn = c; setupConnection(); });
 
     function connectToPeer() {
         const id = document.getElementById('peer-id').value.toUpperCase();
@@ -244,7 +240,7 @@
 
     function startBuzzer() {
         buzzerAudio.currentTime = 0;
-        buzzerAudio.play().catch(e => { console.log("要操作"); });
+        buzzerAudio.play().catch(e => {});
     }
 
     function stopBuzzer() {
@@ -252,43 +248,51 @@
         buzzerAudio.currentTime = 0;
     }
 
+    // --- ★ここから鉄壁の不具合封じ込めロジック ---
+
     const area = document.getElementById('tap-area');
 
-    // ★Safari対策のダブルタップ無効化（継続）
+    // 1. Safariのピンチズーム・ジェスチャーを強制無効化
+    document.addEventListener('gesturestart', (e) => e.preventDefault(), false);
+    document.addEventListener('gesturechange', (e) => e.preventDefault(), false);
+    document.addEventListener('gestureend', (e) => e.preventDefault(), false);
+
+    // 2. Safari ダブルタップズームの徹底排除
     let lastTouchEnd = 0;
     document.addEventListener('touchend', (e) => {
-        const now = (new Date()).getTime();
-        if (now - lastTouchEnd <= 300) {
-            e.preventDefault(); 
-        }
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) { e.preventDefault(); }
         lastTouchEnd = now;
-    }, false);
+    }, { passive: false });
 
+    // 3. ピンチズーム禁止 & キーボード対策
     document.addEventListener('touchstart', (e) => {
-        if (e.touches.length > 1) {
-            e.preventDefault();
-        }
-        // ★入力欄以外を触ったらフォーカスを外す（キーボード対策）
+        if (e.touches.length > 1) { e.preventDefault(); } // マルチタッチズーム禁止
+        // 入力欄以外を触ったらフォーカスを外す
         if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
             document.activeElement.blur();
         }
     }, { passive: false });
 
+    // 4. ブザー操作（Androidのバイブレーション抑制を含む）
     area.addEventListener('pointerdown', (e) => {
-        // ★ここでpreventDefaultすることで、Android Chromeのバイブレーションを抑制しますわ
+        // ★preventDefaultでAndroid Chromeの自動バイブレーションを抑制
         e.preventDefault();
         startBuzzer();
         if (conn) conn.send('ON');
-    });
+    }, false);
+
     area.addEventListener('pointerup', (e) => {
         e.preventDefault();
         stopBuzzer();
         if (conn) conn.send('OFF');
-    });
+    }, false);
+
     area.addEventListener('pointerleave', (e) => {
         stopBuzzer();
         if (conn) conn.send('OFF');
-    });
+    }, false);
+
 </script>
 </body>
 </html>
