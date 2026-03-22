@@ -7,19 +7,20 @@
     <title>MC Buzzer(SideBound)</title>
     
     <link rel="apple-touch-icon" href="icon.png">
-
     <meta name="apple-mobile-web-app-title" content="連絡用">
-
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        /* ズーム・パン・テキスト選択の徹底禁止 */
+        /* ★全要素に対し、ブラウザ標準のジェスチャーとテキスト選択を根こそぎ禁止します */
         * {
-            touch-action: none;
+            touch-action: none !important;
             -webkit-text-size-adjust: none;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+            -webkit-touch-callout: none !important;
         }
 
         html, body {
@@ -29,9 +30,6 @@
             height: 100vh; width: 100vw;
             overflow: hidden;
             font-family: sans-serif;
-            -webkit-user-select: none;
-            user-select: none;
-            -webkit-touch-callout: none;
         }
 
         .buzzer-container {
@@ -43,7 +41,6 @@
             background-position: center;
             border-radius: 50%;
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-            -webkit-user-drag: none;
         }
 
         #tap-area {
@@ -98,7 +95,8 @@
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 20;
             overflow-y: auto;
-            touch-action: pan-y;
+            /* パネル内だけはスクロールを許可 */
+            touch-action: pan-y !important;
         }
         #settings-panel.open { right: 0; }
         .setting-item { margin-bottom: 20px; text-align: center; }
@@ -107,9 +105,14 @@
             width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; 
             background: #333; border: 1px solid #555; color: white; border-radius: 5px; 
             font-size: 16px !important;
-            touch-action: auto;
+            touch-action: auto !important;
+            -webkit-user-select: text !important;
+            user-select: text !important;
         }
-        button { width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button { 
+            width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;
+            touch-action: auto !important;
+        }
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
         #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
         #qrcode-container { background: white; padding: 15px; display: inline-block; margin-top: 10px; border-radius: 8px; }
@@ -140,6 +143,7 @@
             <select id="sound-select" onchange="changeSound()">
                 <option value="ブザー.mp3">ブザー １</option>
                 <option value="音2.mp3">ベル ２</option>
+                <option value="音3.mp3">ベル ３</option>
             </select>
         </div>
         <div class="setting-item">
@@ -152,7 +156,7 @@
     <audio id="buzzer-sound" src="ブザー.mp3" loop prefetch></audio>
 
 <script>
-    // --- 通信ロジック ---
+    // --- 通信ロジックは変更なし ---
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let res = '';
@@ -215,43 +219,57 @@
         buzzerAudio.currentTime = 0;
     }
 
-    // --- OS/ブラウザ不具合封じ込め ---
+    // --- ★ここからが「徹底防御」ロジックですわ ---
+
     const area = document.getElementById('tap-area');
 
-    // Safari 拡大防止
-    document.addEventListener('gesturestart', (e) => e.preventDefault(), false);
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', (e) => {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) { e.preventDefault(); }
-        lastTouchEnd = now;
-    }, { passive: false });
+    // 1. 全てのジェスチャー(ピンチ・回転)を最優先で阻止
+    document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
 
-    // キーボード・ズーム対策
+    // 2. iOSの連打ズームを物理的に封じる (touchendの間隔を監視)
+    let lastTouchTime = 0;
     document.addEventListener('touchstart', (e) => {
+        const now = Date.now();
+        if (now - lastTouchTime <= 300) {
+            e.preventDefault(); // 連打とみなされる間隔なら動作をキャンセル
+        }
+        lastTouchTime = now;
+
+        // マルチタッチ(2本指以上)によるズームも阻止
         if (e.touches.length > 1) { e.preventDefault(); }
-        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { document.activeElement.blur(); }
+
+        // 入力欄以外ならキーボードを閉じる
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+            document.activeElement.blur();
+        }
     }, { passive: false });
 
-    // 操作時バイブ・長押しメニュー抑制
+    // 3. Androidの長押しバイブとコンテキストメニューを抹殺
+    // pointerdownで即座にデフォルト動作を奪い取ります
     area.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         startBuzzer();
         if (conn) conn.send('ON');
-    }, false);
+    }, { passive: false });
 
     area.addEventListener('pointerup', (e) => {
         e.preventDefault();
         stopBuzzer();
         if (conn) conn.send('OFF');
-    }, false);
+    }, { passive: false });
 
     area.addEventListener('pointerleave', (e) => {
         stopBuzzer();
         if (conn) conn.send('OFF');
     }, false);
 
-    area.addEventListener('contextmenu', (e) => { e.preventDefault(); }, false);
+    // 長押しメニューの徹底禁止
+    window.oncontextmenu = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    };
 
 </script>
 </body>
