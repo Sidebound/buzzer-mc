@@ -20,8 +20,6 @@
             height: 100vh; overflow: hidden;
             touch-action: none; 
             font-family: sans-serif;
-
-            /* iOS Safariでの文字選択とメニュー表示を禁止 */
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
@@ -36,8 +34,6 @@
             background-position: center;
             border-radius: 50%;
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-
-            /* 画像のドラッグを禁止 */
             -webkit-user-drag: none;
         }
 
@@ -56,7 +52,6 @@
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            /* ★しぇいさまこだわりの「もう一つ内側の縁」サイズですわ */
             width: 50%; height: 50%;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0);
@@ -85,4 +80,177 @@
             overflow-y: auto;
         }
         #settings-panel.open { right: 0; }
-        .setting-item { margin-bottom: 20px;
+        .setting-item { margin-bottom: 20px; text-align: center; }
+        
+        input, select { 
+            width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; 
+            background: #333; border: 1px solid #555; color: white; border-radius: 5px; 
+            font-size: 16px;
+        }
+        label { display: block; text-align: left; margin-bottom: 5px; font-size: 14px; color: #ccc; }
+        button { width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        
+        #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
+        #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
+
+        #qrcode-container {
+            background: white;
+            padding: 15px;
+            display: inline-block;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
+        #qrcode img {
+            width: 180px !important;
+            height: 180px !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="buzzer-container">
+        <div id="tap-area">
+            <div id="buzzer-button-visual"></div>
+        </div>
+    </div>
+
+    <div id="settings-icon" onclick="toggleSettings()">⚙</div>
+
+    <div id="settings-panel">
+        <div style="text-align: right; cursor: pointer;" onclick="toggleSettings()">✖ 閉じる</div>
+        <h3>通信設定</h3>
+        
+        <div class="setting-item">
+            <p>招待用QRコード</p>
+            <div id="qrcode-container"><div id="qrcode"></div></div>
+            <p><small id="my-id-display">ID発行中...</small></p>
+        </div>
+        
+        <hr>
+
+        <div class="setting-item">
+            <label for="sound-select">自分の端末の音色:</label>
+            <select id="sound-select" onchange="changeSound()">
+                <option value="ブザー.mp3">ブザー １</option>
+                <option value="音2.mp3">ベル ２（準備中）</option>
+                <option value="音3.mp3">ベル ３（準備中）</option>
+            </select>
+        </div>
+
+        <div class="setting-item">
+            <p>相手のIDを入力:</p>
+            <input type="text" id="peer-id" placeholder="8文字のIDを入力">
+            <button onclick="connectToPeer()">接続する</button>
+        </div>
+        <div class="setting-item">
+            <p><span id="status-light"></span> <span id="status">待機中</span></p>
+        </div>
+    </div>
+
+    <audio id="buzzer-sound" src="ブザー.mp3" loop prefetch></audio>
+
+<script>
+    function generateShortId() {
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        let res = '';
+        for (let i = 0; i < 8; i++) {
+            res += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return res;
+    }
+
+    const myId = generateShortId();
+    const peer = new Peer(myId);
+    let conn;
+    let qrcode = null;
+    const buzzerAudio = document.getElementById('buzzer-sound');
+
+    function toggleSettings() {
+        document.getElementById('settings-panel').classList.toggle('open');
+    }
+
+    function changeSound() {
+        const selectedSound = document.getElementById('sound-select').value;
+        buzzerAudio.src = selectedSound;
+        buzzerAudio.load();
+    }
+
+    peer.on('open', (id) => { 
+        document.getElementById('my-id-display').innerText = "ID: " + id; 
+        const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
+        
+        if (!qrcode) {
+            qrcode = new QRCode(document.getElementById("qrcode"), {
+                text: inviteUrl,
+                width: 256,
+                height: 256,
+                correctLevel : QRCode.CorrectLevel.L 
+            });
+        } else {
+            qrcode.makeCode(inviteUrl);
+        }
+    });
+
+    window.addEventListener('load', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get('id');
+        if (targetId) {
+            document.getElementById('status').innerText = "自動接続を試みています...";
+            setTimeout(() => {
+                conn = peer.connect(targetId.toUpperCase());
+                setupConnection();
+            }, 1500);
+        }
+    });
+
+    peer.on('connection', (c) => {
+        conn = c;
+        setupConnection();
+    });
+
+    function connectToPeer() {
+        const id = document.getElementById('peer-id').value.toUpperCase();
+        if(!id) return;
+        conn = peer.connect(id);
+        setupConnection();
+    }
+
+    function setupConnection() {
+        conn.on('open', () => {
+            document.getElementById('status-light').classList.add('connected');
+            document.getElementById('status').innerText = "接続完了！";
+            setTimeout(toggleSettings, 1000);
+        });
+        conn.on('data', (data) => {
+            if (data === 'ON') startBuzzer();
+            else if (data === 'OFF') stopBuzzer();
+        });
+    }
+
+    function startBuzzer() {
+        buzzerAudio.play().catch(e => { console.log("要操作"); });
+    }
+
+    function stopBuzzer() {
+        buzzerAudio.pause();
+        buzzerAudio.currentTime = 0;
+    }
+
+    const area = document.getElementById('tap-area');
+    area.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        startBuzzer();
+        if (conn) conn.send('ON');
+    });
+    area.addEventListener('pointerup', (e) => {
+        e.preventDefault();
+        stopBuzzer();
+        if (conn) conn.send('OFF');
+    });
+    area.addEventListener('pointerleave', (e) => {
+        stopBuzzer();
+        if (conn) conn.send('OFF');
+    });
+</script>
+</body>
+</html>
