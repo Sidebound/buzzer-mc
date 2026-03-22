@@ -27,17 +27,35 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
         }
 
+        /* 1. タップ判定エリア（広範囲に拡大） */
         #tap-area {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 55%; height: 55%;
+            width: 55%; height: 55%; /* 一回り外側まで反応 */
             border-radius: 50%;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             z-index: 5;
+            /* background-color: rgba(255, 0, 0, 0.2); // 範囲確認用デバッグ色 */
         }
-        #tap-area:active { background-color: rgba(255,255,255,0.1); }
+
+        /* 2. 視覚フィードバック専用（光る範囲は中央に限定） */
+        #buzzer-button-visual {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50%; height: 50%; /* タップエリア(55%)に対する比率で、中央ボタンサイズに調整 */
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0);
+            transition: background-color 0.05s;
+            pointer-events: none; /* タップの邪魔をしない設定 */
+        }
+
+        /* 押した時に中央だけを光らせる魔法 */
+        #tap-area:active #buzzer-button-visual {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
 
         #settings-icon {
             position: fixed; bottom: 20px; right: 20px;
@@ -57,13 +75,18 @@
         }
         #settings-panel.open { right: 0; }
         .setting-item { margin-bottom: 20px; text-align: center; }
-        input { width: 100%; padding: 10px; box-sizing: border-box; margin-bottom: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 5px; }
+        
+        input, select { 
+            width: 100%; padding: 10px; box-sizing: border-box; margin-bottom: 10px; 
+            background: #333; border: 1px solid #555; color: white; border-radius: 5px; 
+            font-size: 16px;
+        }
+        label { display: block; text-align: left; margin-bottom: 5px; font-size: 14px; color: #ccc; }
         button { width: 100%; padding: 10px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; }
         
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
         #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
 
-        /* QRコードを表示する枠のスタイルですわ */
         #qrcode-container {
             background: white;
             padding: 10px;
@@ -76,7 +99,9 @@
 <body>
 
     <div class="buzzer-container">
-        <div id="tap-area"></div>
+        <div id="tap-area">
+            <div id="buzzer-button-visual"></div>
+        </div>
     </div>
 
     <div id="settings-icon" onclick="toggleSettings()">⚙</div>
@@ -84,14 +109,26 @@
     <div id="settings-panel">
         <div style="text-align: right; cursor: pointer;" onclick="toggleSettings()">✖ 閉じる</div>
         <h3>通信設定</h3>
+        
         <div class="setting-item">
             <p>招待用QRコード</p>
             <div id="qrcode-container"><div id="qrcode"></div></div>
             <p><small id="my-id-display">ID発行中...</small></p>
         </div>
+        
         <hr>
+
         <div class="setting-item">
-            <p>手動で接続:</p>
+            <label for="sound-select">自分の端末の音色:</label>
+            <select id="sound-select" onchange="changeSound()">
+                <option value="ブザー.mp3">ブザー１ </option>
+                <option value="音2.mp3">ベル ２（準備中）</option>
+                <option value="音3.mp3">ベル ３（準備中）</option>
+            </select>
+        </div>
+
+        <div class="setting-item">
+            <p>相手のIDを入力:</p>
             <input type="text" id="peer-id" placeholder="相手のIDを入力">
             <button onclick="connectToPeer()">接続する</button>
         </div>
@@ -112,11 +149,15 @@
         document.getElementById('settings-panel').classList.toggle('open');
     }
 
-    // ID発行とQRコードの生成
+    // 音色切り替え
+    function changeSound() {
+        const selectedSound = document.getElementById('sound-select').value;
+        buzzerAudio.src = selectedSound;
+        buzzerAudio.load();
+    }
+
     peer.on('open', (id) => { 
         document.getElementById('my-id-display').innerText = "ID: " + id; 
-        
-        // 公開後のURLにIDを付与した招待用URLを作成しますわ
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
         
         if (!qrcode) {
@@ -130,14 +171,12 @@
         }
     });
 
-    // ページ読み込み時にURLパラメータをチェックして自動接続
     window.addEventListener('load', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
         
         if (targetId) {
             document.getElementById('status').innerText = "自動接続を試みています...";
-            // PeerJSの準備が整うまで少し待機してから接続します
             setTimeout(() => {
                 conn = peer.connect(targetId);
                 setupConnection();
