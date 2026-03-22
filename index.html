@@ -13,13 +13,15 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        /* ★ブラウザの全自動機能を徹底的に無効化 */
+        /* ★システム側のジェスチャー・バイブ判定を根こそぎ拒否 */
         * {
             touch-action: none !important;
             -webkit-text-size-adjust: none;
             -webkit-user-select: none !important;
             user-select: none !important;
             -webkit-touch-callout: none !important;
+            /* Android Chromeでの長押し時の青いハイライトも消去 */
+            -webkit-tap-highlight-color: transparent !important;
         }
 
         html, body {
@@ -49,7 +51,6 @@
             width: 55%; height: 55%; 
             border-radius: 50%;
             cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
             z-index: 5;
             outline: none;
         }
@@ -61,7 +62,7 @@
             width: 50%; height: 50%;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0);
-            transition: background-color 0s; /* レスポンス重視でアニメーションをカット */
+            transition: background-color 0s;
             pointer-events: none;
         }
 
@@ -94,7 +95,7 @@
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 20;
             overflow-y: auto;
-            touch-action: pan-y !important; /* パネル内だけスクロール許可 */
+            touch-action: pan-y !important;
         }
         #settings-panel.open { right: 0; }
         .setting-item { margin-bottom: 20px; text-align: center; }
@@ -152,7 +153,11 @@
     </div>
 
 <script>
-    // --- ★Web Audio API による超高速発音システム ---
+    // ★Androidのバイブ機能をプログラム的に殺却
+    if (navigator.vibrate) {
+        navigator.vibrate = function() { return false; };
+    }
+
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
     let audioBuffer = null;
@@ -163,19 +168,13 @@
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
             audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            console.log("Sound loaded: " + url);
-        } catch (e) {
-            console.error("Audio Load Error:", e);
-        }
+        } catch (e) { console.error(e); }
     }
 
     function startBuzzer() {
         if (!audioBuffer) return;
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        
-        // 前の音を止める（重なりを防ぐ場合）
         stopBuzzer();
-
         sourceNode = audioCtx.createBufferSource();
         sourceNode.buffer = audioBuffer;
         sourceNode.loop = true;
@@ -190,15 +189,9 @@
         }
     }
 
-    function loadNewSound() {
-        const url = document.getElementById('sound-select').value;
-        loadSound(url);
-    }
-
-    // 初回ロード
+    function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
     loadSound('ブザー.mp3');
 
-    // --- 通信ロジック ---
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let res = '';
@@ -222,17 +215,20 @@
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
         if (!qrcode) { qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 256, height: 256 }); }
         else { qrcode.makeCode(inviteUrl); }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get('id');
+        if (targetId && targetId.length === 8) {
+            document.getElementById('peer-id').value = targetId;
+            connectToPeer(targetId);
+        }
     });
 
-    peer.on('connection', (c) => { 
-        conn = c; 
-        setupConnection(); 
-    });
+    peer.on('connection', (c) => { conn = c; setupConnection(); });
 
-    function connectToPeer() {
-        const id = document.getElementById('peer-id').value.toUpperCase();
+    function connectToPeer(targetId) {
+        const id = (targetId || document.getElementById('peer-id').value).toUpperCase();
         if(!id) return;
-        // reliable: false で速度優先に設定
         conn = peer.connect(id, { reliable: false });
         setupConnection();
     }
@@ -249,27 +245,22 @@
         });
     }
 
-    // --- OS/ブラウザ不具合・ズーム・バイブ徹底封殺 ---
     const area = document.getElementById('tap-area');
-
-    // iOS ジェスチャー禁止
     document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
-
-    // iOS 連打拡大を物理的に握りつぶす
+    
     let lastTouchTime = 0;
     document.addEventListener('touchstart', (e) => {
         const now = Date.now();
         if (now - lastTouchTime <= 300) { e.preventDefault(); }
         lastTouchTime = now;
         if (e.touches.length > 1) { e.preventDefault(); }
-        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
-            document.activeElement.blur();
-        }
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { document.activeElement.blur(); }
     }, { passive: false });
 
-    // Android 長押しバイブ・メニュー・選択を徹底阻止
+    // ★pointerdownで即座にデフォルト動作（バイブ含む）を奪い取る
     area.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         startBuzzer();
         if (conn) conn.send('ON');
     }, { passive: false });
@@ -285,7 +276,6 @@
         if (conn) conn.send('OFF');
     }, false);
 
-    // 長押しメニューをページ全体で禁止
     window.oncontextmenu = function(e) {
         e.preventDefault();
         e.stopPropagation();
