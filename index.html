@@ -13,19 +13,18 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        /* HTMLとBody全体でズームを禁止しますわ */
         html, body {
             margin: 0; padding: 0;
             background-color: #000;
             display: flex; justify-content: center; align-items: center;
             height: 100vh; width: 100vw;
             overflow: hidden;
-            touch-action: none; /* ズーム・スクロールを完全に無効化 */
+            touch-action: none; 
             font-family: sans-serif;
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
-            -webkit-text-size-adjust: 100%; /* 回転時の文字サイズ自動調整を防止 */
+            -webkit-text-size-adjust: 100%;
         }
 
         .buzzer-container {
@@ -55,7 +54,7 @@
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 50%; height: 50%; /* しぇいさまこだわりの範囲 */
+            width: 50%; height: 50%;
             border-radius: 50%;
             background-color: rgba(255, 255, 255, 0);
             transition: background-color 0.05s;
@@ -72,13 +71,24 @@
             cursor: pointer; z-index: 10;
         }
 
+        /* ★設定パネルが開いている時だけ現れる「見えない壁」ですわ */
+        #settings-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.3); /* ほんのり暗くして集中力を高めます */
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s;
+            z-index: 15;
+        }
+        #settings-overlay.open { opacity: 1; visibility: visible; }
+
         #settings-panel {
             position: fixed; top: 0; right: -300px;
             width: 280px; height: 100vh;
-            background: rgba(20, 20, 20, 0.95);
+            background: rgba(20, 20, 20, 0.98);
             color: #fff; padding: 20px;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
-            transition: right 0.3s ease-in-out;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 20;
             overflow-y: auto;
         }
@@ -88,7 +98,7 @@
         input, select { 
             width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; 
             background: #333; border: 1px solid #555; color: white; border-radius: 5px; 
-            font-size: 16px !important; /* Safariの自動ズームを防ぐ最小サイズ */
+            font-size: 16px !important;
         }
         label { display: block; text-align: left; margin-bottom: 5px; font-size: 14px; color: #ccc; }
         button { width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -97,16 +107,10 @@
         #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
 
         #qrcode-container {
-            background: white;
-            padding: 15px;
-            display: inline-block;
-            margin-top: 10px;
-            border-radius: 8px;
+            background: white; padding: 15px; display: inline-block;
+            margin-top: 10px; border-radius: 8px;
         }
-        #qrcode img {
-            width: 180px !important;
-            height: 180px !important;
-        }
+        #qrcode img { width: 180px !important; height: 180px !important; }
     </style>
 </head>
 <body>
@@ -117,10 +121,12 @@
         </div>
     </div>
 
+    <div id="settings-overlay" onclick="toggleSettings()"></div>
+
     <div id="settings-icon" onclick="toggleSettings()">⚙</div>
 
     <div id="settings-panel">
-        <div style="text-align: right; cursor: pointer;" onclick="toggleSettings()">✖ 閉じる</div>
+        <div style="text-align: right; cursor: pointer; padding: 10px 0;" onclick="toggleSettings()">✖ 閉じる</div>
         <h3>通信設定</h3>
         
         <div class="setting-item">
@@ -168,8 +174,10 @@
     let qrcode = null;
     const buzzerAudio = document.getElementById('buzzer-sound');
 
+    // ★オーバーレイも含めてトグルするようにいたしました
     function toggleSettings() {
         document.getElementById('settings-panel').classList.toggle('open');
+        document.getElementById('settings-overlay').classList.toggle('open');
     }
 
     function changeSound() {
@@ -240,7 +248,6 @@
     }
 
     const area = document.getElementById('tap-area');
-    // iOSでのダブルタップズーム等を完全に防ぐためのパッシブ解除
     area.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
     area.addEventListener('pointerdown', (e) => {
