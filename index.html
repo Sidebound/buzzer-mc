@@ -13,7 +13,6 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        /* タッチ判定・ズームの物理的禁止 */
         * {
             touch-action: none !important;
             -webkit-text-size-adjust: none;
@@ -32,6 +31,7 @@
             font-family: sans-serif;
         }
 
+        /* ブザーの土台 */
         .buzzer-container {
             position: relative;
             width: 90vw; height: 90vw;
@@ -43,6 +43,7 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
         }
 
+        /* 透明なタップ領域 */
         #tap-area {
             position: absolute;
             top: 50%; left: 50%;
@@ -54,6 +55,7 @@
             outline: none;
         }
 
+        /* 押した時の視覚効果 */
         #buzzer-button-visual {
             position: absolute;
             top: 50%; left: 50%;
@@ -69,6 +71,7 @@
             background-color: rgba(255, 255, 255, 0.2);
         }
 
+        /* 設定アイコン */
         #settings-icon {
             position: fixed; bottom: 20px; right: 20px;
             font-size: 2rem; color: rgba(255,255,255,0.5);
@@ -140,8 +143,8 @@
             <label for="sound-select">自分の端末の音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
                 <option value="ブザー.mp3">ブザー １</option>
-                <option value="音2.mp3">ベル ２</option>
-                <option value="音3.mp3">ベル ３</option>
+                <option value="音2.mp3">ベル ２（準備中）</option>
+                <option value="音3.mp3">ベル ３（準備中）</option>
             </select>
         </div>
         <div class="setting-item">
@@ -152,33 +155,29 @@
     </div>
 
 <script>
-    // ★Androidのバイブ機能をプログラム的に無効化
-    if (navigator.vibrate) {
-        navigator.vibrate = function() { return false; };
-    }
+    // Androidのバイブ殺却
+    if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
     let audioBuffer = null;
     let sourceNode = null;
-    let isLoading = false; // ★音色切り替えバグ修正：ロード判定フラグの復旧
+    let isLoadingSound = false; // 音色ロード判定
 
     async function loadSound(url) {
-        isLoading = true; // ロード中
+        isLoadingSound = true;
         try {
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
+            // 音色データを新しくデコード（上書き）
             audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            console.log("音色ロード完了: " + url);
-        } catch (e) { 
-            console.error(e); 
-        } finally {
-            isLoading = false; // ロード完了
-        }
+            console.log("Loaded: " + url);
+        } catch (e) { console.error("Sound Load Error:", e); }
+        finally { isLoadingSound = false; }
     }
 
     function startBuzzer() {
-        if (!audioBuffer || isLoading) return; // ロード中の再生防止
+        if (!audioBuffer || isLoadingSound) return;
         if (audioCtx.state === 'suspended') audioCtx.resume();
         stopBuzzer();
         sourceNode = audioCtx.createBufferSource();
@@ -195,13 +194,15 @@
         }
     }
 
-    // ★音色切り替えバグ修正：正しくセレクトボックスのvalueを取得するように復旧
-    function loadNewSound() { 
-        const selectedFile = document.getElementById('sound-select').value;
-        loadSound(selectedFile); 
+    function loadNewSound() {
+        const val = document.getElementById('sound-select').value;
+        loadSound(val);
     }
+
+    // 初期読み込み
     loadSound('ブザー.mp3');
 
+    // --- PeerJS通信ロジック ---
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let res = '';
@@ -226,6 +227,7 @@
         if (!qrcode) { qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 256, height: 256 }); }
         else { qrcode.makeCode(inviteUrl); }
 
+        // QRコードからの自動接続
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
         if (targetId && targetId.length === 8) {
@@ -275,10 +277,10 @@
         }
     }
 
+    // --- 操作イベント ---
     const area = document.getElementById('tap-area');
     document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
     
-    // ★iOS Safari連打ズーム対策の完全復旧
     let lastTouchTime = 0;
     document.addEventListener('touchstart', (e) => {
         const now = Date.now();
