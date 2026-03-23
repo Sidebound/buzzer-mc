@@ -157,8 +157,7 @@
             <button onclick="connectToPeer()">接続する</button>
         </div>
         <div class="setting-item"><p><span id="status-light"></span> <span id="status">待機中</span></p></div>
-    </div>
-        
+            
         <div class="setting-item">
             <label style="display: block; margin-bottom: 10px;">音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
@@ -177,7 +176,7 @@
             </select>
         </div>
 
-       
+     </div>  
 
 <script>
     if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }
