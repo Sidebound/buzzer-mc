@@ -145,11 +145,19 @@
     <div id="settings-panel">
         <div style="text-align: right; cursor: pointer; padding: 10px 0;" onclick="toggleSettings()">✖ 閉じる</div>
         <h3>通信設定</h3>
+        <p>通信相手にQRコードを読んでもらうか、相手のIDを入力してください</p>
         <div class="setting-item">
             <div id="qrcode-container"><div id="qrcode"></div></div>
             <p><small id="my-id-display">ID発行中...</small></p>
         </div>
         <hr style="border: 0.5px solid #444; margin: 20px 0;">
+
+         <div class="setting-item">
+            <input type="text" id="peer-id" placeholder="通信相手のID(8文字)を入力">
+            <button onclick="connectToPeer()">接続する</button>
+        </div>
+        <div class="setting-item"><p><span id="status-light"></span> <span id="status">待機中</span></p></div>
+    </div>
         
         <div class="setting-item">
             <label style="display: block; margin-bottom: 10px;">音色:</label>
@@ -169,12 +177,7 @@
             </select>
         </div>
 
-        <div class="setting-item">
-            <input type="text" id="peer-id" placeholder="8文字のIDを入力">
-            <button onclick="connectToPeer()">接続する</button>
-        </div>
-        <div class="setting-item"><p><span id="status-light"></span> <span id="status">待機中</span></p></div>
-    </div>
+       
 
 <script>
     if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }
