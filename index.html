@@ -71,11 +71,17 @@
             background-color: rgba(255, 255, 255, 0.2);
         }
 
-        /* 設定アイコン */
+        /* ★設定アイコン（左上へ移動・視認性アップ） */
         #settings-icon {
-            position: fixed; bottom: 20px; right: 20px;
-            font-size: 2rem; color: rgba(255,255,255,0.5);
+            position: fixed; top: 20px; left: 20px;
+            width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.8rem; color: rgba(255,255,255,0.8);
             cursor: pointer; z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         #settings-overlay {
@@ -143,8 +149,8 @@
             <label for="sound-select">自分の端末の音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
                 <option value="ブザー.mp3">ブザー １</option>
-                <option value="音2.mp3">ベル ２（準備中）</option>
-                <option value="音3.mp3">ベル ３（準備中）</option>
+                <option value="音2.mp3">ベル ２</option>
+                <option value="音3.mp3">ベル ３</option>
             </select>
         </div>
         <div class="setting-item">
@@ -155,23 +161,33 @@
     </div>
 
 <script>
-    // Androidのバイブ殺却
     if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
     let audioBuffer = null;
     let sourceNode = null;
-    let isLoadingSound = false; // 音色ロード判定
+    let isLoadingSound = false;
+    let wakeLock = null; // ★画面消灯防止用
+
+    // ★画面消灯を防止する関数
+    async function requestWakeLock() {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log("Wake Lock active: 画面消灯を防止中");
+            } catch (err) {
+                console.error("Wake Lock Error:", err);
+            }
+        }
+    }
 
     async function loadSound(url) {
         isLoadingSound = true;
         try {
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
-            // 音色データを新しくデコード（上書き）
             audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            console.log("Loaded: " + url);
         } catch (e) { console.error("Sound Load Error:", e); }
         finally { isLoadingSound = false; }
     }
@@ -185,6 +201,9 @@
         sourceNode.loop = true;
         sourceNode.connect(audioCtx.destination);
         sourceNode.start(0);
+        
+        // ★最初の操作時に画面ロックをリクエスト
+        if (!wakeLock) requestWakeLock();
     }
 
     function stopBuzzer() {
@@ -195,11 +214,9 @@
     }
 
     function loadNewSound() {
-        const val = document.getElementById('sound-select').value;
-        loadSound(val);
+        loadSound(document.getElementById('sound-select').value);
     }
 
-    // 初期読み込み
     loadSound('ブザー.mp3');
 
     // --- PeerJS通信ロジック ---
@@ -227,7 +244,6 @@
         if (!qrcode) { qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 256, height: 256 }); }
         else { qrcode.makeCode(inviteUrl); }
 
-        // QRコードからの自動接続
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
         if (targetId && targetId.length === 8) {
@@ -243,8 +259,11 @@
     });
 
     function connectToPeer(targetId) {
-        const id = (targetId || document.getElementById('peer-id').value).toUpperCase();
-        if(!id || (conn && conn.peer === id)) return;
+        // ★空白削除と大文字化を適用
+        const rawId = targetId || document.getElementById('peer-id').value;
+        const id = rawId.trim().toUpperCase();
+
+        if(!id || id === myId || (conn && conn.peer === id)) return;
         if (conn) { conn.close(); }
         conn = peer.connect(id, { reliable: false });
         setupConnection();
@@ -255,6 +274,7 @@
         conn.on('open', () => {
             updateStatus(true);
             setTimeout(toggleSettings, 1000);
+            if (!wakeLock) requestWakeLock(); // 接続成功時にもロック
         });
         conn.on('data', (data) => {
             if (data === 'ON') startBuzzer();
