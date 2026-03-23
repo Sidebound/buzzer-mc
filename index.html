@@ -32,7 +32,7 @@
             font-family: sans-serif;
         }
 
-        /* ブザーの外装（動的に画像と角丸を変更） */
+        /* ブザーの外装（動的に画像と形状を変更） */
         #buzzer-display {
             position: relative;
             width: 90vw; height: 90vw;
@@ -116,33 +116,19 @@
             width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; 
             background: #333; border: 1px solid #555; color: white; border-radius: 5px; 
             font-size: 16px !important;
-            touch-action: auto !important;
-            -webkit-user-select: text !important;
-            user-select: text !important;
         }
         button { 
             width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;
-            touch-action: auto !important;
         }
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
         #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
         
         #qrcode-container { 
-            background: white; 
-            padding: 10px; 
-            display: inline-block; 
-            margin: 10px auto; 
-            border-radius: 8px;
-            box-sizing: border-box;
-            max-width: 100%; 
+            background: white; padding: 10px; display: inline-block; margin: 10px auto; border-radius: 8px;
+            box-sizing: border-box; max-width: 100%; 
         }
         
-        #qrcode img { 
-            max-width: 100% !important; 
-            height: auto !important; 
-            display: block;
-            margin: 0 auto;
-        }
+        #qrcode img { max-width: 100% !important; height: auto !important; display: block; margin: 0 auto; }
     </style>
 </head>
 <body>
@@ -166,20 +152,20 @@
         <hr style="border: 0.5px solid #444; margin: 20px 0;">
         
         <div class="setting-item">
-            <label style="display: block; margin-bottom: 10px;">端末の音色:</label>
+            <label style="display: block; margin-bottom: 10px;">音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
                 <option value="ブザー.mp3">ブザー １</option>
-                <option value="音2.mp3">ベル ２</option>
-                <option value="音3.mp3">ベル ３</option>
+                <option value="音2.mp3">ベル ２（準備中）</option>
+                <option value="音3.mp3">ベル ３（準備中）</option>
             </select>
         </div>
 
         <div class="setting-item">
-            <label style="display: block; margin-bottom: 10px;">ブザーの外見:</label>
-            <select id="image-select" onchange="changeBuzzerImage()">
-                <option value="image_buzzer.png">オリーブ（標準）</option>
-                <option value="image_3cda09.png">ブラウン（色違い）</option>
-                <option value="image_3cda29.jpg">連絡用（プレート）</option>
+            <label style="display: block; margin-bottom: 10px;">見た目:</label>
+            <select id="-select" onchange="changeBuzzer()">
+                <option value="image_buzzer1.png">オリーブ</option>
+                <option value="image_buzzer3.png">マルーン</option>
+                <option value="image_buzzar2.png">連絡用</option>
             </select>
         </div>
 
@@ -202,9 +188,7 @@
 
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-            } catch (err) { console.error("Wake Lock Error:", err); }
+            try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
         }
     }
 
@@ -214,11 +198,11 @@
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
             audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        } catch (e) { console.error("Sound Load Error:", e); }
+        } catch (e) { console.error(e); }
         finally { isLoadingSound = false; }
     }
 
-    // ★画像と形状を切り替える関数
+    // ★画像と形状を切り替える関数（完全実装）
     function changeBuzzerImage() {
         const select = document.getElementById('image-select');
         const display = document.getElementById('buzzer-display');
@@ -226,10 +210,11 @@
         
         display.style.backgroundImage = `url('${val}')`;
         
-        // 「連絡用」デザインの時だけ四角くし、それ以外は丸くする
-        if (val.includes('image_3cda29')) {
+        // 「連絡用」プレートデザインの時だけ四角くし、それ以外は丸くする
+        if (val.includes('image_buzzer2')) {
             display.style.borderRadius = "12px";
         } else {
+            // オリーブとブラウン（DAIKO）は丸
             display.style.borderRadius = "50%";
         }
     }
@@ -253,9 +238,7 @@
         }
     }
 
-    function loadNewSound() {
-        loadSound(document.getElementById('sound-select').value);
-    }
+    function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
 
     loadSound('ブザー.mp3');
 
@@ -288,9 +271,7 @@
                 height: 180,
                 correctLevel : QRCode.CorrectLevel.M
             }); 
-        } else { 
-            qrcode.makeCode(inviteUrl); 
-        }
+        } else { qrcode.makeCode(inviteUrl); }
 
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
