@@ -4,12 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MC Buzzer(SideBound)</title>
+    
     <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-title" content="連絡用">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
+        /* タッチ判定・ズームの物理的禁止 */
         * {
             touch-action: none !important;
             -webkit-text-size-adjust: none;
@@ -18,42 +22,95 @@
             -webkit-touch-callout: none !important;
             -webkit-tap-highlight-color: transparent !important;
         }
+
         html, body {
-            margin: 0; padding: 0; background-color: #000;
+            margin: 0; padding: 0;
+            background-color: #000;
             display: flex; justify-content: center; align-items: center;
-            height: 100vh; width: 100vw; overflow: hidden; font-family: sans-serif;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            font-family: sans-serif;
         }
+
         .buzzer-container {
-            position: relative; width: 90vw; height: 90vw; max-width: 500px; max-height: 500px;
-            background-image: url('image_buzzer.png'); background-size: cover; background-position: center;
-            border-radius: 50%; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative;
+            width: 90vw; height: 90vw;
+            max-width: 500px; max-height: 500px;
+            background-image: url('image_buzzer.png'); 
+            background-size: cover;
+            background-position: center;
+            border-radius: 50%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
         }
+
         #tap-area {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 55%; height: 55%; border-radius: 50%; cursor: pointer; z-index: 5; outline: none;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 55%; height: 55%; 
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 5;
+            outline: none;
         }
+
         #buzzer-button-visual {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 50%; height: 50%; border-radius: 50%; background-color: rgba(255, 255, 255, 0);
-            transition: background-color 0s; pointer-events: none;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50%; height: 50%;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0);
+            transition: background-color 0s;
+            pointer-events: none;
         }
-        #tap-area:active #buzzer-button-visual { background-color: rgba(255, 255, 255, 0.2); }
-        #settings-icon { position: fixed; bottom: 20px; right: 20px; font-size: 2rem; color: rgba(255,255,255,0.5); cursor: pointer; z-index: 10; }
-        #settings-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); opacity: 0; visibility: hidden; transition: opacity 0.3s; z-index: 15; }
+
+        #tap-area:active #buzzer-button-visual {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        #settings-icon {
+            position: fixed; bottom: 20px; right: 20px;
+            font-size: 2rem; color: rgba(255,255,255,0.5);
+            cursor: pointer; z-index: 10;
+        }
+
+        #settings-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.3); 
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s;
+            z-index: 15;
+        }
         #settings-overlay.open { opacity: 1; visibility: visible; }
+
         #settings-panel {
-            position: fixed; top: 0; right: -300px; width: 280px; height: 100vh;
-            background: rgba(20, 20, 20, 0.98); color: #fff; padding: 20px;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.5); transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 20; overflow-y: auto; touch-action: pan-y !important;
+            position: fixed; top: 0; right: -300px;
+            width: 280px; height: 100vh;
+            background: rgba(20, 20, 20, 0.98);
+            color: #fff; padding: 20px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 20;
+            overflow-y: auto;
+            touch-action: pan-y !important;
         }
         #settings-panel.open { right: 0; }
         .setting-item { margin-bottom: 20px; text-align: center; }
+        
         input, select { 
-            width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 5px; font-size: 16px !important;
-            touch-action: auto !important; -webkit-user-select: text !important; user-select: text !important;
+            width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; 
+            background: #333; border: 1px solid #555; color: white; border-radius: 5px; 
+            font-size: 16px !important;
+            touch-action: auto !important;
+            -webkit-user-select: text !important;
+            user-select: text !important;
         }
-        button { width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; touch-action: auto !important; }
+        button { 
+            width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;
+            touch-action: auto !important;
+        }
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
         #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
         #qrcode-container { background: white; padding: 15px; display: inline-block; margin-top: 10px; border-radius: 8px; }
@@ -63,7 +120,9 @@
 <body>
 
     <div class="buzzer-container">
-        <div id="tap-area"><div id="buzzer-button-visual"></div></div>
+        <div id="tap-area">
+            <div id="buzzer-button-visual"></div>
+        </div>
     </div>
 
     <div id="settings-overlay" onclick="toggleSettings()"></div>
@@ -81,8 +140,8 @@
             <label for="sound-select">自分の端末の音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
                 <option value="ブザー.mp3">ブザー １</option>
-                <option value="音2.mp3">ベル ２（準備中）</option>
-                <option value="音3.mp3">ベル ３（準備中）</option>
+                <option value="音2.mp3">ベル ２</option>
+                <option value="音3.mp3">ベル ３</option>
             </select>
         </div>
         <div class="setting-item">
@@ -93,23 +152,33 @@
     </div>
 
 <script>
-    if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }
+    // ★Androidのバイブ機能をプログラム的に無効化
+    if (navigator.vibrate) {
+        navigator.vibrate = function() { return false; };
+    }
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
     let audioBuffer = null;
     let sourceNode = null;
+    let isLoading = false; // ★音色切り替えバグ修正：ロード判定フラグの復旧
 
     async function loadSound(url) {
+        isLoading = true; // ロード中
         try {
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
             audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        } catch (e) { console.error(e); }
+            console.log("音色ロード完了: " + url);
+        } catch (e) { 
+            console.error(e); 
+        } finally {
+            isLoading = false; // ロード完了
+        }
     }
 
     function startBuzzer() {
-        if (!audioBuffer) return;
+        if (!audioBuffer || isLoading) return; // ロード中の再生防止
         if (audioCtx.state === 'suspended') audioCtx.resume();
         stopBuzzer();
         sourceNode = audioCtx.createBufferSource();
@@ -120,10 +189,17 @@
     }
 
     function stopBuzzer() {
-        if (sourceNode) { try { sourceNode.stop(); } catch(e) {} sourceNode = null; }
+        if (sourceNode) {
+            try { sourceNode.stop(); } catch(e) {}
+            sourceNode = null;
+        }
     }
 
-    function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
+    // ★音色切り替えバグ修正：正しくセレクトボックスのvalueを取得するように復旧
+    function loadNewSound() { 
+        const selectedFile = document.getElementById('sound-select').value;
+        loadSound(selectedFile); 
+    }
     loadSound('ブザー.mp3');
 
     function generateShortId() {
@@ -158,9 +234,7 @@
         }
     });
 
-    // 相手からの接続を待機
     peer.on('connection', (incomingConn) => {
-        // すでに接続がある場合は古い方を閉じる
         if (conn) { conn.close(); }
         conn = incomingConn;
         setupConnection();
@@ -169,7 +243,6 @@
     function connectToPeer(targetId) {
         const id = (targetId || document.getElementById('peer-id').value).toUpperCase();
         if(!id || (conn && conn.peer === id)) return;
-        
         if (conn) { conn.close(); }
         conn = peer.connect(id, { reliable: false });
         setupConnection();
@@ -177,17 +250,14 @@
 
     function setupConnection() {
         if (!conn) return;
-
         conn.on('open', () => {
             updateStatus(true);
             setTimeout(toggleSettings, 1000);
         });
-
         conn.on('data', (data) => {
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
         });
-
         conn.on('close', () => updateStatus(false));
         conn.on('error', () => updateStatus(false));
     }
@@ -208,6 +278,7 @@
     const area = document.getElementById('tap-area');
     document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
     
+    // ★iOS Safari連打ズーム対策の完全復旧
     let lastTouchTime = 0;
     document.addEventListener('touchstart', (e) => {
         const now = Date.now();
