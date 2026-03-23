@@ -66,8 +66,9 @@
             pointer-events: none;
         }
 
+        /* ★白くなる実装をこちらで削除（背景を透明に固定）いたしましたわ */
         #tap-area:active #buzzer-button-visual {
-            background-color: rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0);
         }
 
         #settings-icon {
@@ -154,7 +155,7 @@
             <label style="display: block; margin-bottom: 10px;">音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
                 <option value="ブザー.mp3">ブザー</option>
-                <option value="電鈴1.mp3">電鈴１ </option>
+                <option value="電鈴1.mp3">電鈴１</option>
                 <option value="電鈴2.mp3">電鈴２（準備中）</option>
             </select>
         </div>
@@ -208,7 +209,7 @@
         
         display.style.backgroundImage = `url('${val}')`;
         
-        // 正しい綴り「buzzer2」で判定するように修正いたしましたわ
+        // ★ image_buzzer3（連絡用）の時に角丸を12pxにするよう調整済みですわ
         if (val.includes('buzzer3')) {
             display.style.borderRadius = "12px";
         } else {
