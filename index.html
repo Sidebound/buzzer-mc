@@ -26,12 +26,13 @@
             margin: 0; padding: 0;
             background-color: #000;
             display: flex; justify-content: center; align-items: center;
-            height: 100vh; width: 100vw;
+            /* ★高さに dvh を採用し、バーとの被りを防ぎます */
+            height: 100vh; height: 100dvh; 
+            width: 100vw;
             overflow: hidden;
             font-family: sans-serif;
         }
 
-        /* ブザーの土台 */
         .buzzer-container {
             position: relative;
             width: 90vw; height: 90vw;
@@ -43,7 +44,6 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
         }
 
-        /* 透明なタップ領域 */
         #tap-area {
             position: absolute;
             top: 50%; left: 50%;
@@ -55,7 +55,6 @@
             outline: none;
         }
 
-        /* 押した時の視覚効果 */
         #buzzer-button-visual {
             position: absolute;
             top: 50%; left: 50%;
@@ -71,7 +70,6 @@
             background-color: rgba(255, 255, 255, 0.2);
         }
 
-        /* ★設定アイコン（左上へ移動・視認性アップ） */
         #settings-icon {
             position: fixed; top: 20px; left: 20px;
             width: 50px; height: 50px;
@@ -96,17 +94,24 @@
 
         #settings-panel {
             position: fixed; top: 0; right: -300px;
-            width: 280px; height: 100vh;
+            width: 280px; 
+            /* ★パネルの高さも動的に。最下部にゆとりを持たせます */
+            height: 100vh; height: 100dvh;
             background: rgba(20, 20, 20, 0.98);
-            color: #fff; padding: 20px;
+            color: #fff; 
+            /* ★下側に大きめのパディングを確保（ナビゲーションバー対策） */
+            padding: 20px 20px 80px 20px; 
+            box-sizing: border-box;
             box-shadow: -10px 0 30px rgba(0,0,0,0.5);
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 20;
             overflow-y: auto;
+            /* ★スクロールを許可 */
             touch-action: pan-y !important;
         }
         #settings-panel.open { right: 0; }
-        .setting-item { margin-bottom: 20px; text-align: center; }
+
+        .setting-item { margin-bottom: 24px; text-align: center; }
         
         input, select { 
             width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; 
@@ -144,9 +149,9 @@
             <div id="qrcode-container"><div id="qrcode"></div></div>
             <p><small id="my-id-display">ID発行中...</small></p>
         </div>
-        <hr>
+        <hr style="border: 0.5px solid #444; margin: 20px 0;">
         <div class="setting-item">
-            <label for="sound-select">自分の端末の音色:</label>
+            <label for="sound-select" style="display: block; margin-bottom: 10px;">自分の端末の音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
                 <option value="ブザー.mp3">ブザー １</option>
                 <option value="音2.mp3">ベル ２</option>
@@ -168,17 +173,13 @@
     let audioBuffer = null;
     let sourceNode = null;
     let isLoadingSound = false;
-    let wakeLock = null; // ★画面消灯防止用
+    let wakeLock = null;
 
-    // ★画面消灯を防止する関数
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
             try {
                 wakeLock = await navigator.wakeLock.request('screen');
-                console.log("Wake Lock active: 画面消灯を防止中");
-            } catch (err) {
-                console.error("Wake Lock Error:", err);
-            }
+            } catch (err) { console.error("Wake Lock Error:", err); }
         }
     }
 
@@ -201,8 +202,6 @@
         sourceNode.loop = true;
         sourceNode.connect(audioCtx.destination);
         sourceNode.start(0);
-        
-        // ★最初の操作時に画面ロックをリクエスト
         if (!wakeLock) requestWakeLock();
     }
 
@@ -219,7 +218,6 @@
 
     loadSound('ブザー.mp3');
 
-    // --- PeerJS通信ロジック ---
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let res = '';
@@ -259,10 +257,8 @@
     });
 
     function connectToPeer(targetId) {
-        // ★空白削除と大文字化を適用
         const rawId = targetId || document.getElementById('peer-id').value;
         const id = rawId.trim().toUpperCase();
-
         if(!id || id === myId || (conn && conn.peer === id)) return;
         if (conn) { conn.close(); }
         conn = peer.connect(id, { reliable: false });
@@ -274,7 +270,7 @@
         conn.on('open', () => {
             updateStatus(true);
             setTimeout(toggleSettings, 1000);
-            if (!wakeLock) requestWakeLock(); // 接続成功時にもロック
+            if (!wakeLock) requestWakeLock();
         });
         conn.on('data', (data) => {
             if (data === 'ON') startBuzzer();
@@ -297,7 +293,6 @@
         }
     }
 
-    // --- 操作イベント ---
     const area = document.getElementById('tap-area');
     document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
     
