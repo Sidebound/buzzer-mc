@@ -32,12 +32,11 @@
             font-family: sans-serif;
         }
 
-        /* ブザーの外装（動的に画像と形状を変更） */
         #buzzer-display {
             position: relative;
             width: 90vw; height: 90vw;
             max-width: 500px; max-height: 500px;
-            background-image: url('image_buzzer.png'); 
+            background-image: url('image_buzzer1.png'); 
             background-size: cover;
             background-position: center;
             border-radius: 50%;
@@ -162,10 +161,10 @@
 
         <div class="setting-item">
             <label style="display: block; margin-bottom: 10px;">見た目:</label>
-            <select id="-select" onchange="changeBuzzer()">
+            <select id="image-select" onchange="changeBuzzerImage()">
                 <option value="image_buzzer1.png">オリーブ</option>
                 <option value="image_buzzer3.png">マルーン</option>
-                <option value="image_buzzar2.png">連絡用</option>
+                <option value="image_buzzer2.png">連絡用</option>
             </select>
         </div>
 
@@ -202,7 +201,6 @@
         finally { isLoadingSound = false; }
     }
 
-    // ★画像と形状を切り替える関数（完全実装）
     function changeBuzzerImage() {
         const select = document.getElementById('image-select');
         const display = document.getElementById('buzzer-display');
@@ -210,11 +208,10 @@
         
         display.style.backgroundImage = `url('${val}')`;
         
-        // 「連絡用」プレートデザインの時だけ四角くし、それ以外は丸くする
-        if (val.includes('image_buzzer2')) {
+        // 正しい綴り「buzzer2」で判定するように修正いたしましたわ
+        if (val.includes('buzzer2')) {
             display.style.borderRadius = "12px";
         } else {
-            // オリーブとブラウン（DAIKO）は丸
             display.style.borderRadius = "50%";
         }
     }
