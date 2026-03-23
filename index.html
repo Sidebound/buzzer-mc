@@ -26,7 +26,6 @@
             margin: 0; padding: 0;
             background-color: #000;
             display: flex; justify-content: center; align-items: center;
-            /* ★高さに dvh を採用し、バーとの被りを防ぎます */
             height: 100vh; height: 100dvh; 
             width: 100vw;
             overflow: hidden;
@@ -93,20 +92,19 @@
         #settings-overlay.open { opacity: 1; visibility: visible; }
 
         #settings-panel {
-            position: fixed; top: 0; right: -300px;
+            position: fixed; top: 0; right: -320px;
             width: 280px; 
-            /* ★パネルの高さも動的に。最下部にゆとりを持たせます */
+            /* ★画面の85%を最大幅に設定し、はみ出しを防止 */
+            max-width: 85vw;
             height: 100vh; height: 100dvh;
             background: rgba(20, 20, 20, 0.98);
             color: #fff; 
-            /* ★下側に大きめのパディングを確保（ナビゲーションバー対策） */
             padding: 20px 20px 80px 20px; 
             box-sizing: border-box;
             box-shadow: -10px 0 30px rgba(0,0,0,0.5);
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 20;
             overflow-y: auto;
-            /* ★スクロールを許可 */
             touch-action: pan-y !important;
         }
         #settings-panel.open { right: 0; }
@@ -127,8 +125,23 @@
         }
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
         #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
-        #qrcode-container { background: white; padding: 15px; display: inline-block; margin-top: 10px; border-radius: 8px; }
-        #qrcode img { width: 180px !important; height: 180px !important; }
+        
+        /* ★QRコードコンテナの修正 */
+        #qrcode-container { 
+            background: white; 
+            padding: 10px; 
+            display: block; 
+            margin: 10px auto; 
+            border-radius: 8px;
+            /* 親の幅に合わせつつ、大きくなりすぎないように */
+            width: 100%;
+            max-width: 200px; 
+            box-sizing: border-box;
+        }
+        #qrcode img { 
+            width: 100% !important; 
+            height: auto !important; 
+        }
     </style>
 </head>
 <body>
@@ -154,8 +167,8 @@
             <label for="sound-select" style="display: block; margin-bottom: 10px;">自分の端末の音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
                 <option value="ブザー.mp3">ブザー １</option>
-                <option value="音2.mp3">ベル ２</option>
-                <option value="音3.mp3">ベル ３</option>
+                <option value="音2.mp3">ベル ２（準備中）</option>
+                <option value="音3.mp3">ベル ３（準備中）</option>
             </select>
         </div>
         <div class="setting-item">
@@ -239,8 +252,19 @@
     peer.on('open', (id) => { 
         document.getElementById('my-id-display').innerText = "ID: " + id; 
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
-        if (!qrcode) { qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 256, height: 256 }); }
-        else { qrcode.makeCode(inviteUrl); }
+        
+        // ★QRコードの生成サイズをコンテナの幅に合わせる（256から可変へ）
+        const containerWidth = document.getElementById('qrcode-container').offsetWidth - 20;
+        if (!qrcode) { 
+            qrcode = new QRCode(document.getElementById("qrcode"), { 
+                text: inviteUrl, 
+                width: 256, 
+                height: 256,
+                correctLevel : QRCode.CorrectLevel.M // 読み取りやすさのバランス
+            }); 
+        } else { 
+            qrcode.makeCode(inviteUrl); 
+        }
 
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
