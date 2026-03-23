@@ -94,7 +94,6 @@
         #settings-panel {
             position: fixed; top: 0; right: -320px;
             width: 280px; 
-            /* ★画面の85%を最大幅に設定し、はみ出しを防止 */
             max-width: 85vw;
             height: 100vh; height: 100dvh;
             background: rgba(20, 20, 20, 0.98);
@@ -126,21 +125,23 @@
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
         #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
         
-        /* ★QRコードコンテナの修正 */
+        /* ★QRコードコンテナと本体の修正（完全収容） */
         #qrcode-container { 
             background: white; 
             padding: 10px; 
-            display: block; 
+            display: inline-block; /* QRコードのサイズに合わせる */
             margin: 10px auto; 
             border-radius: 8px;
-            /* 親の幅に合わせつつ、大きくなりすぎないように */
-            width: 100%;
-            max-width: 200px; 
             box-sizing: border-box;
+            max-width: 100%; /* 親要素からはみ出さない */
         }
+        
+        /* ★これが肝。生成されるimg要素をコンテナ内に強制収容します */
         #qrcode img { 
-            width: 100% !important; 
+            max-width: 100% !important; 
             height: auto !important; 
+            display: block;
+            margin: 0 auto;
         }
     </style>
 </head>
@@ -167,8 +168,8 @@
             <label for="sound-select" style="display: block; margin-bottom: 10px;">自分の端末の音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
                 <option value="ブザー.mp3">ブザー １</option>
-                <option value="音2.mp3">ベル ２（準備中）</option>
-                <option value="音3.mp3">ベル ３（準備中）</option>
+                <option value="音2.mp3">ベル ２</option>
+                <option value="音3.mp3">ベル ３</option>
             </select>
         </div>
         <div class="setting-item">
@@ -253,14 +254,13 @@
         document.getElementById('my-id-display').innerText = "ID: " + id; 
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
         
-        // ★QRコードの生成サイズをコンテナの幅に合わせる（256から可変へ）
-        const containerWidth = document.getElementById('qrcode-container').offsetWidth - 20;
+        // ★生成するQRコードの最大サイズを現実に合わせる（256から180へ）
         if (!qrcode) { 
             qrcode = new QRCode(document.getElementById("qrcode"), { 
                 text: inviteUrl, 
-                width: 256, 
-                height: 256,
-                correctLevel : QRCode.CorrectLevel.M // 読み取りやすさのバランス
+                width: 180, 
+                height: 180,
+                correctLevel : QRCode.CorrectLevel.M
             }); 
         } else { 
             qrcode.makeCode(inviteUrl); 
