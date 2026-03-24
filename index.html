@@ -128,6 +128,17 @@
         }
         
         #qrcode img { max-width: 100% !important; height: auto !important; display: block; margin: 0 auto; }
+
+        /* コピーボタンのスタイル */
+        .copy-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 30px; height: 30px; margin-left: 8px;
+            background: #444; color: #fff; border-radius: 4px;
+            cursor: pointer; vertical-align: middle; font-size: 14px;
+            border: 1px solid #666;
+            touch-action: auto !important; /* ボタンはタップ可能に */
+        }
+        .copy-btn:active { background: #666; }
     </style>
 </head>
 <body>
@@ -147,7 +158,10 @@
         <p><small>通信相手にQRコードを読んでもらうか、相手のIDを入力してください</small></p>
         <div class="setting-item">
             <div id="qrcode-container"><div id="qrcode"></div></div>
-            <p><small id="my-id-display">ID発行中...</small></p>
+            <p>
+                <small id="my-id-display">ID発行中...</small>
+                <span id="copy-btn" class="copy-btn" onclick="copyMyId()" style="display:none;">📋</span>
+            </p>
         </div>
         <hr style="border: 0.5px solid #444; margin: 20px 0;">
 
@@ -255,8 +269,25 @@
         document.getElementById('settings-overlay').classList.toggle('open');
     }
 
+    // IDコピー機能の実装
+    function copyMyId() {
+        navigator.clipboard.writeText(myId).then(() => {
+            const btn = document.getElementById('copy-btn');
+            const display = document.getElementById('my-id-display');
+            const originalText = display.innerText;
+            display.innerText = "コピー完了！";
+            btn.style.display = "none";
+            setTimeout(() => {
+                display.innerText = originalText;
+                btn.style.display = "inline-flex";
+            }, 2000);
+        });
+    }
+
     peer.on('open', (id) => { 
-        document.getElementById('my-id-display').innerText = "ID: " + id; 
+        document.getElementById('my-id-display').innerText = "あなたのID: " + id; 
+        document.getElementById('copy-btn').style.display = "inline-flex"; // ID確定後にボタンを表示
+        
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
         if (!qrcode) { 
             qrcode = new QRCode(document.getElementById("qrcode"), { 
@@ -271,7 +302,6 @@
         }
     });
 
-    // 自身の切断も監視
     peer.on('disconnected', () => { updateStatus(false); });
 
     peer.on('connection', (incomingConn) => {
@@ -300,7 +330,6 @@
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
         });
-        // 切断・エラーの検知
         conn.on('close', () => { updateStatus(false); });
         conn.on('error', () => { updateStatus(false); });
     }
@@ -315,7 +344,7 @@
             light.classList.remove('connected');
             text.innerText = "待機中";
             conn = null;
-            stopBuzzer(); // 安全装置：切断時に音を止める
+            stopBuzzer();
         }
     }
 
@@ -327,7 +356,11 @@
         if (now - lastTouchTime <= 300) { e.preventDefault(); }
         lastTouchTime = now;
         if (e.touches.length > 1) { e.preventDefault(); }
-        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { document.activeElement.blur(); }
+        
+        // INPUT, SELECT, およびコピーボタン(copy-btn)以外はフォーカス解除
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.target.classList.contains('copy-btn')) { 
+            document.activeElement.blur(); 
+        }
     }, { passive: false });
 
     area.addEventListener('pointerdown', (e) => {
