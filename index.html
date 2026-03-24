@@ -66,7 +66,6 @@
             pointer-events: none;
         }
 
-        /* ★白くなる実装をこちらで削除（背景を透明に固定）いたしましたわ */
         #tap-area:active #buzzer-button-visual {
             background-color: rgba(255, 255, 255, 0);
         }
@@ -145,14 +144,14 @@
     <div id="settings-panel">
         <div style="text-align: right; cursor: pointer; padding: 10px 0;" onclick="toggleSettings()">✖ 閉じる</div>
         <h3>通信設定</h3>
-        <p>通信相手にQRコードを読んでもらうか、相手のIDを入力してください</p>
+        <p><small>通信相手にQRコードを読んでもらうか、相手のIDを入力してください</small></p>
         <div class="setting-item">
             <div id="qrcode-container"><div id="qrcode"></div></div>
             <p><small id="my-id-display">ID発行中...</small></p>
         </div>
         <hr style="border: 0.5px solid #444; margin: 20px 0;">
 
-         <div class="setting-item">
+        <div class="setting-item">
             <input type="text" id="peer-id" placeholder="通信相手のID(8文字)を入力">
             <button onclick="connectToPeer()">接続する</button>
         </div>
@@ -175,8 +174,7 @@
                 <option value="image_buzzer3.png">連絡用</option>
             </select>
         </div>
-
-     </div>  
+    </div>
 
 <script>
     if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }
@@ -208,10 +206,7 @@
         const select = document.getElementById('image-select');
         const display = document.getElementById('buzzer-display');
         const val = select.value;
-        
         display.style.backgroundImage = `url('${val}')`;
-        
-        // ★ image_buzzer3（連絡用）の時に角丸を12pxにするよう調整済みですわ
         if (val.includes('buzzer3')) {
             display.style.borderRadius = "12px";
         } else {
@@ -263,16 +258,11 @@
     peer.on('open', (id) => { 
         document.getElementById('my-id-display').innerText = "ID: " + id; 
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
-        
         if (!qrcode) { 
             qrcode = new QRCode(document.getElementById("qrcode"), { 
-                text: inviteUrl, 
-                width: 180, 
-                height: 180,
-                correctLevel : QRCode.CorrectLevel.M
+                text: inviteUrl, width: 180, height: 180, correctLevel : QRCode.CorrectLevel.M
             }); 
         } else { qrcode.makeCode(inviteUrl); }
-
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
         if (targetId && targetId.length === 8) {
@@ -280,6 +270,9 @@
             connectToPeer(targetId);
         }
     });
+
+    // 自身の切断も監視
+    peer.on('disconnected', () => { updateStatus(false); });
 
     peer.on('connection', (incomingConn) => {
         if (conn) { conn.close(); }
@@ -307,8 +300,9 @@
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
         });
-        conn.on('close', () => updateStatus(false));
-        conn.on('error', () => updateStatus(false));
+        // 切断・エラーの検知
+        conn.on('close', () => { updateStatus(false); });
+        conn.on('error', () => { updateStatus(false); });
     }
 
     function updateStatus(isConnected) {
@@ -321,12 +315,12 @@
             light.classList.remove('connected');
             text.innerText = "待機中";
             conn = null;
+            stopBuzzer(); // 安全装置：切断時に音を止める
         }
     }
 
     const area = document.getElementById('tap-area');
     document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
-    
     let lastTouchTime = 0;
     document.addEventListener('touchstart', (e) => {
         const now = Date.now();
