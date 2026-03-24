@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MC Buzzer(SideBound)</title>
     
+    <link rel="manifest" href="manifest.json">
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker 登録完了'))
+                    .catch(err => console.log('Service Worker 登録失敗', err));
+            });
+        }
+    </script>
+
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="apple-mobile-web-app-title" content="連絡用">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -129,14 +141,13 @@
         
         #qrcode img { max-width: 100% !important; height: auto !important; display: block; margin: 0 auto; }
 
-        /* コピーボタンのスタイル */
         .copy-btn {
             display: inline-flex; align-items: center; justify-content: center;
             width: 30px; height: 30px; margin-left: 8px;
             background: #444; color: #fff; border-radius: 4px;
             cursor: pointer; vertical-align: middle; font-size: 14px;
             border: 1px solid #666;
-            touch-action: auto !important; /* ボタンはタップ可能に */
+            touch-action: auto !important;
         }
         .copy-btn:active { background: #666; }
     </style>
@@ -269,7 +280,6 @@
         document.getElementById('settings-overlay').classList.toggle('open');
     }
 
-    // IDコピー機能の実装
     function copyMyId() {
         navigator.clipboard.writeText(myId).then(() => {
             const btn = document.getElementById('copy-btn');
@@ -286,7 +296,7 @@
 
     peer.on('open', (id) => { 
         document.getElementById('my-id-display').innerText = "あなたのID: " + id; 
-        document.getElementById('copy-btn').style.display = "inline-flex"; // ID確定後にボタンを表示
+        document.getElementById('copy-btn').style.display = "inline-flex"; 
         
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
         if (!qrcode) { 
@@ -357,7 +367,6 @@
         lastTouchTime = now;
         if (e.touches.length > 1) { e.preventDefault(); }
         
-        // INPUT, SELECT, およびコピーボタン(copy-btn)以外はフォーカス解除
         if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.target.classList.contains('copy-btn')) { 
             document.activeElement.blur(); 
         }
