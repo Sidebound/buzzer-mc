@@ -185,7 +185,8 @@
         <div class="setting-item">
             <label style="display: block; margin-bottom: 10px;">音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
-                <option value="ブザー.mp3">ブザー</option>
+                <option value="ブザー1.mp3">ブザー１</option>
+                <option value="ブザー2.mp3">ブザー２</option>
                 <option value="電鈴1.mp3">電鈴１</option>
                 <option value="電鈴2.mp3">電鈴２（準備中）</option>
             </select>
@@ -260,7 +261,7 @@
 
     function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
 
-    loadSound('ブザー.mp3');
+    loadSound('ブザー1.mp3');
 
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
