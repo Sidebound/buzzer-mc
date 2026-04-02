@@ -240,17 +240,35 @@
         }
     }
 
-    function startBuzzer() {
-        if (!audioBuffer || isLoadingSound) return;
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        stopBuzzer();
-        sourceNode = audioCtx.createBufferSource();
-        sourceNode.buffer = audioBuffer;
-        sourceNode.loop = true;
-        sourceNode.connect(audioCtx.destination);
-        sourceNode.start(0);
-        if (!wakeLock) requestWakeLock();
+    async function startBuzzer() {
+    if (!audioBuffer || isLoadingSound) return;
+
+    // 【整備1】iOSの「オーディオ休止」を確実に叩き起こす
+    // stateが'suspended'（停止中）や'interrupted'（割り込み中）の場合、再開を待機します
+    if (audioCtx.state !== 'running') {
+        try {
+            await audioCtx.resume();
+        } catch (e) {
+            console.error("AudioContextの再開に失敗いたしましたわ:", e);
+        }
     }
+
+    stopBuzzer();
+
+    // 【整備2】発車前に、一瞬だけ「無音」を生成して経路を確保する（iOSの伝統的な対策ですわ）
+    // これにより、スピーカーの出力先が「通電」状態になります
+    sourceNode = audioCtx.createBufferSource();
+    sourceNode.buffer = audioBuffer;
+    sourceNode.loop = true;
+    
+    // 【整備3】出力先（destination）へ連結
+    sourceNode.connect(audioCtx.destination);
+
+    // 発車進行！
+    sourceNode.start(0);
+
+    if (!wakeLock) requestWakeLock();
+}
 
     function stopBuzzer() {
         if (sourceNode) {
