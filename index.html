@@ -274,6 +274,7 @@
     const peer = new Peer(myId);
     let conn = null;
     let qrcode = null;
+    let keepAliveInterval = null; // 【追加】生存確認タイマー用
 
     function toggleSettings() {
         if (document.getElementById('settings-panel').classList.contains('open')) { document.activeElement.blur(); }
@@ -313,7 +314,10 @@
         }
     });
 
-    peer.on('disconnected', () => { updateStatus(false); });
+    peer.on('disconnected', () => { 
+        updateStatus(false);
+        peer.reconnect(); // 【追加】サーバーから切れたら自動再接続
+    });
 
     peer.on('connection', (incomingConn) => {
         if (conn) { conn.close(); }
@@ -336,13 +340,28 @@
             updateStatus(true);
             setTimeout(toggleSettings, 1000);
             if (!wakeLock) requestWakeLock();
+
+            // 【改善】20秒ごとに「生存確認」信号を送る
+            if (keepAliveInterval) clearInterval(keepAliveInterval);
+            keepAliveInterval = setInterval(() => {
+                if (conn && conn.open) {
+                    conn.send('HEARTBEAT');
+                }
+            }, 20000);
         });
         conn.on('data', (data) => {
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
+            // HEARTBEATは何もしなくてOK
         });
-        conn.on('close', () => { updateStatus(false); });
-        conn.on('error', () => { updateStatus(false); });
+        conn.on('close', () => { 
+            updateStatus(false);
+            if (keepAliveInterval) clearInterval(keepAliveInterval);
+        });
+        conn.on('error', () => { 
+            updateStatus(false);
+            if (keepAliveInterval) clearInterval(keepAliveInterval);
+        });
     }
 
     function updateStatus(isConnected) {
