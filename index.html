@@ -48,17 +48,16 @@
             box-sizing: border-box;
         }
 
-        /* --- 防護無線ボタン：超大型化（ブザーの半分程度） --- */
+        /* --- 防護無線ボタン --- */
         #emergency-container {
             position: fixed; 
             top: 15px; 
             left: 15px;
-            /* ブザー(90vw)の半分、約45vwに設定 */
             width: 45vw; 
             height: 45vw;
             max-width: 240px; 
             max-height: 240px;
-            z-index: 30; /* 設定パネル(100)より低く設定 */
+            z-index: 30;
         }
 
         #emergency-btn {
@@ -70,7 +69,7 @@
         }
 
         #emergency-btn.broken {
-            background-image: url('emergency1_broken.png');
+            /* JavaScriptで背景画像を制御するため、ここでは基本設定のみ */
         }
 
         #emergency-flash-layer {
@@ -92,7 +91,7 @@
             animation: flash-white 0.3s infinite;
         }
 
-        /* --- 設定アイコン：右上 --- */
+        /* --- 設定アイコン --- */
         #settings-icon {
             position: fixed; 
             top: 20px; 
@@ -103,7 +102,7 @@
             border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
             font-size: 1.8rem; color: rgba(255,255,255,0.8);
-            cursor: pointer; z-index: 40; /* 防護無線より上 */
+            cursor: pointer; z-index: 40;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
@@ -143,11 +142,11 @@
             pointer-events: none;
         }
 
-        /* --- 設定パネル：レイヤー順序を最前面に修正 --- */
+        /* --- 設定パネル --- */
         #settings-overlay { 
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
             background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; 
-            transition: opacity 0.3s; z-index: 90; /* 重なり順を上げました */
+            transition: opacity 0.3s; z-index: 90; 
         }
         #settings-overlay.open { opacity: 1; visibility: visible; }
 
@@ -157,12 +156,13 @@
             color: #fff; padding: 20px 20px 80px 20px; box-sizing: border-box; 
             box-shadow: -10px 0 30px rgba(0,0,0,0.5); 
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            z-index: 100; /* 全ての要素より上に表示 */
+            z-index: 100;
             overflow-y: auto; touch-action: pan-y !important; 
         }
         #settings-panel.open { right: 0; }
 
         .setting-item { margin-bottom: 24px; text-align: center; }
+        .setting-label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #aaa; text-align: left; }
         input, select { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 5px; font-size: 16px !important; }
         button { width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
@@ -191,8 +191,8 @@
 
     <div id="settings-panel">
         <div style="text-align: right; cursor: pointer; padding: 10px 0;" onclick="toggleSettings()">✖ 閉じる</div>
+        
         <h3>通信設定</h3>
-        <p><small>通信相手にQRコードを読んでもらうか、相手のIDを入力してください</small></p>
         <div class="setting-item">
             <div id="qrcode-container"><div id="qrcode"></div></div>
             <p>
@@ -200,29 +200,49 @@
                 <span id="copy-btn" class="copy-btn" onclick="copyMyId()" style="display:none;">📋</span>
             </p>
         </div>
-        <hr style="border: 0.5px solid #444; margin: 20px 0;">
-
         <div class="setting-item">
             <input type="text" id="peer-id" placeholder="通信相手のID(8文字)を入力">
             <button onclick="connectToPeer()">接続する</button>
         </div>
         <div class="setting-item"><p><span id="status-light"></span> <span id="status">待機中</span></p></div>
-            
+
+        <hr style="border: 0.5px solid #444; margin: 20px 0;">
+
+        <h3>ブザー設定</h3>
         <div class="setting-item">
-            <label style="display: block; margin-bottom: 10px;">音色:</label>
+            <label class="setting-label">音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
                 <option value="ブザー1.mp3">ブザー１</option>
                 <option value="ブザー2.mp3">ブザー２</option>
                 <option value="電鈴1.mp3">電鈴１</option>
             </select>
         </div>
-
         <div class="setting-item">
-            <label style="display: block; margin-bottom: 10px;">見た目:</label>
+            <label class="setting-label">見た目:</label>
             <select id="image-select" onchange="changeBuzzerImage()">
                 <option value="image_buzzer1.png">オリーブ</option>
                 <option value="image_buzzer2.png">マルーン</option>
                 <option value="image_buzzer3.png">連絡用</option>
+            </select>
+        </div>
+
+        <hr style="border: 0.5px solid #444; margin: 20px 0;">
+
+        <h3>防護無線設定</h3>
+        <div class="setting-item">
+            <label class="setting-label">音色:</label>
+            <select id="emg-sound-select" onchange="loadNewEmergencySound()">
+                <option value="1">タイプ１</option>
+                <option value="2">タイプ２</option>
+                <option value="3">タイプ３</option>
+            </select>
+        </div>
+        <div class="setting-item">
+            <label class="setting-label">見た目:</label>
+            <select id="emg-image-select" onchange="changeEmergencyImage()">
+                <option value="1">タイプ１</option>
+                <option value="2">タイプ２</option>
+                <option value="3">タイプ３</option>
             </select>
         </div>
     </div>
@@ -240,6 +260,14 @@
     let wakeLock = null;
     let isEmergencyActive = false;
 
+    // 画像プリロード関数
+    function preloadImages(urls) {
+        urls.forEach(url => {
+            const img = new Image();
+            img.src = url;
+        });
+    }
+
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
             try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
@@ -254,19 +282,47 @@
             const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
             if (type === 'main') audioBuffer = decodedData;
             if (type === 'emergency') emergencyBuffer = decodedData;
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Sound Load Error:", e); }
         finally { isLoadingSound = false; }
     }
 
+    // 防護無線タップ時
     function handleEmergencyTap() {
         const btn = document.getElementById('emergency-btn');
-        btn.classList.add('broken');
-        if (!isEmergencyActive) { startEmergency(true); } else { stopEmergency(true); }
+        const type = document.getElementById('emg-image-select').value;
+        
+        if (!isEmergencyActive) { 
+            btn.classList.add('broken');
+            btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
+            startEmergency(true); 
+        } else { 
+            btn.classList.remove('broken');
+            btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
+            stopEmergency(true); 
+        }
+    }
+
+    // 防護無線の見た目変更
+    function changeEmergencyImage() {
+        const type = document.getElementById('emg-image-select').value;
+        const btn = document.getElementById('emergency-btn');
+        if (isEmergencyActive) {
+            btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
+        } else {
+            btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
+        }
+    }
+
+    // 防護無線の音色変更
+    function loadNewEmergencySound() {
+        const type = document.getElementById('emg-sound-select').value;
+        loadSound(`emergency${type}.mp3`, 'emergency');
     }
 
     async function startEmergency(sendSignal = false) {
-        if (isEmergencyActive) return;
-        isEmergencyActive = true;
+        if (isEmergencyActive && !sendSignal) return; // 遠隔受信時はフラグ管理のみ
+        if (sendSignal) isEmergencyActive = true;
+
         document.getElementById('emergency-container').classList.add('is-flashing');
         if (emergencyBuffer) {
             if (audioCtx.state !== 'running') await audioCtx.resume();
@@ -281,7 +337,7 @@
     }
 
     function stopEmergency(sendSignal = false) {
-        isEmergencyActive = false;
+        if (sendSignal) isEmergencyActive = false;
         document.getElementById('emergency-container').classList.remove('is-flashing');
         stopEmergencySound();
         if (sendSignal && conn && conn.open) conn.send('EMG_OFF');
@@ -294,6 +350,7 @@
         }
     }
 
+    // ブザー設定
     function changeBuzzerImage() {
         const select = document.getElementById('image-select');
         const display = document.getElementById('buzzer-display');
@@ -317,9 +374,21 @@
     function stopBuzzer() { if (sourceNode) { try { sourceNode.stop(); } catch(e) {} sourceNode = null; } }
     function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
 
-    loadSound('ブザー1.mp3', 'main');
-    loadSound('emergency1.mp3', 'emergency');
+    // 初期化
+    window.addEventListener('load', () => {
+        loadSound('ブザー1.mp3', 'main');
+        loadSound('emergency1.mp3', 'emergency');
+        
+        // 全画像のプリロード
+        preloadImages([
+            'emergency1_normal.png', 'emergency1_broken.png',
+            'emergency2_normal.png', 'emergency2_broken.png',
+            'emergency3_normal.png', 'emergency3_broken.png',
+            'image_buzzer1.png', 'image_buzzer2.png', 'image_buzzer3.png'
+        ]);
+    });
 
+    // --- 通信ロジック ---
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let res = '';
@@ -385,8 +454,8 @@
         conn.on('data', (data) => {
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
-            else if (data === 'EMG_ON') startEmergency(false);
-            else if (data === 'EMG_OFF') stopEmergency(false);
+            else if (data === 'EMG_ON') { isEmergencyActive = true; startEmergency(false); }
+            else if (data === 'EMG_OFF') { isEmergencyActive = false; stopEmergency(false); }
         });
         conn.on('close', () => { updateStatus(false); if (keepAliveInterval) clearInterval(keepAliveInterval); });
         conn.on('error', () => { updateStatus(false); if (keepAliveInterval) clearInterval(keepAliveInterval); });
