@@ -68,14 +68,16 @@
             cursor: pointer;
         }
 
+        /* 点滅レイヤー：JavaScriptからサイズを可変にします */
         #emergency-flash-layer {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 40%; height: 40%;
             border-radius: 50%;
             background-color: transparent;
             pointer-events: none;
+            /* 初期のタイプ1に合わせたサイズ */
+            width: 22%; height: 22%; 
         }
 
         @keyframes flash-white {
@@ -87,11 +89,9 @@
             animation: flash-white 0.3s infinite;
         }
 
-        /* --- 設定アイコン --- */
+        /* --- 設定パネル等 --- */
         #settings-icon {
-            position: fixed; 
-            top: 20px; 
-            right: 20px;
+            position: fixed; top: 20px; right: 20px;
             width: 50px; height: 50px;
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(5px);
@@ -102,43 +102,22 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* --- メインブザー --- */
         #buzzer-display {
-            position: relative;
-            width: 90vw; height: 90vw;
+            position: relative; width: 90vw; height: 90vw;
             max-width: 500px; max-height: 500px;
             background-image: url('image_buzzer1.png'); 
-            background-size: cover;
-            background-position: center;
-            border-radius: 50%;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-            transition: border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-bottom: 30px;
+            background-size: cover; background-position: center;
+            border-radius: 50%; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            transition: border-radius 0.3s; margin-bottom: 30px;
         }
 
         #tap-area {
-            position: absolute;
-            top: 50%; left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 55%; height: 55%; 
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 5;
-            outline: none;
+            width: 55%; height: 55%; border-radius: 50%;
+            cursor: pointer; z-index: 5;
         }
 
-        #buzzer-button-visual {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50%; height: 50%;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0);
-            transition: background-color 0s;
-            pointer-events: none;
-        }
-
-        /* --- 設定パネル --- */
         #settings-overlay { 
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
             background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; 
@@ -148,24 +127,21 @@
 
         #settings-panel { 
             position: fixed; top: 0; right: -320px; width: 280px; max-width: 85vw; 
-            height: 100vh; height: 100dvh; background: rgba(20, 20, 20, 0.98); 
-            color: #fff; padding: 20px 20px 80px 20px; box-sizing: border-box; 
+            height: 100vh; background: rgba(20, 20, 20, 0.98); 
+            color: #fff; padding: 20px; box-sizing: border-box; 
             box-shadow: -10px 0 30px rgba(0,0,0,0.5); 
-            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            z-index: 100;
-            overflow-y: auto; touch-action: pan-y !important; 
+            transition: right 0.3s; z-index: 100;
+            overflow-y: auto;
         }
         #settings-panel.open { right: 0; }
 
         .setting-item { margin-bottom: 24px; text-align: center; }
         .setting-label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #aaa; text-align: left; }
-        input, select { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 5px; font-size: 16px !important; }
+        input, select { width: 100%; padding: 12px; background: #333; border: 1px solid #555; color: white; border-radius: 5px; font-size: 16px !important; }
         button { width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
-        #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
-        #qrcode-container { background: white; padding: 10px; display: inline-block; margin: 10px auto; border-radius: 8px; box-sizing: border-box; max-width: 100%; }
-        #qrcode img { max-width: 100% !important; height: auto !important; display: block; margin: 0 auto; }
-        .copy-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin-left: 8px; background: #444; color: #fff; border-radius: 4px; cursor: pointer; vertical-align: middle; font-size: 14px; border: 1px solid #666; touch-action: auto !important; }
+        #status-light.connected { background: #0f0; }
+        #qrcode-container { background: white; padding: 10px; display: inline-block; margin: 10px auto; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -177,9 +153,7 @@
     </div>
 
     <div id="buzzer-display">
-        <div id="tap-area">
-            <div id="buzzer-button-visual"></div>
-        </div>
+        <div id="tap-area"></div>
     </div>
 
     <div id="settings-overlay" onclick="toggleSettings()"></div>
@@ -191,18 +165,15 @@
         <h3>通信設定</h3>
         <div class="setting-item">
             <div id="qrcode-container"><div id="qrcode"></div></div>
-            <p>
-                <small id="my-id-display">ID発行中...</small>
-                <span id="copy-btn" class="copy-btn" onclick="copyMyId()" style="display:none;">📋</span>
-            </p>
+            <p><small id="my-id-display">ID発行中...</small></p>
         </div>
         <div class="setting-item">
-            <input type="text" id="peer-id" placeholder="通信相手のID(8文字)を入力">
+            <input type="text" id="peer-id" placeholder="相手のIDを入力">
             <button onclick="connectToPeer()">接続する</button>
         </div>
         <div class="setting-item"><p><span id="status-light"></span> <span id="status">待機中</span></p></div>
 
-        <hr style="border: 0.5px solid #444; margin: 20px 0;">
+        <hr style="border: 0.5px solid #444;">
 
         <h3>ブザー設定</h3>
         <div class="setting-item">
@@ -213,98 +184,79 @@
                 <option value="電鈴1.mp3">電鈴１</option>
             </select>
         </div>
-        <div class="setting-item">
-            <label class="setting-label">見た目:</label>
-            <select id="image-select" onchange="changeBuzzerImage()">
-                <option value="image_buzzer1.png">オリーブ</option>
-                <option value="image_buzzer2.png">マルーン</option>
-                <option value="image_buzzer3.png">連絡用</option>
-            </select>
-        </div>
 
-        <hr style="border: 0.5px solid #444; margin: 20px 0;">
+        <hr style="border: 0.5px solid #444;">
 
         <h3>防護無線設定</h3>
         <div class="setting-item">
             <label class="setting-label">音色:</label>
             <select id="emg-sound-select" onchange="loadNewEmergencySound()">
-                <option value="1">タイプ１</option>
-                <option value="2">タイプ２</option>
-                <option value="3">タイプ３</option>
+                <option value="1">タイプ１ (発報)</option>
+                <option value="2">タイプ２ (防護発報)</option>
             </select>
         </div>
         <div class="setting-item">
             <label class="setting-label">見た目:</label>
             <select id="emg-image-select" onchange="changeEmergencyImage()">
-                <option value="1">タイプ１</option>
-                <option value="2">タイプ２</option>
-                <option value="3">タイプ３</option>
+                <option value="1">タイプ１ (発報)</option>
+                <option value="2">タイプ２ (防護発報)</option>
             </select>
         </div>
     </div>
 
 <script>
-    if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }
+    // --- タイプ別の座標・サイズ設定 ---
+    const EMG_CONFIG = {
+        "1": { flashSize: "22%", tapAreaSize: "35%" }, // タイプ1: 小さめボタン
+        "2": { flashSize: "32%", tapAreaSize: "50%" }, // タイプ2: 大きめボタン
+        "3": { flashSize: "22%", tapAreaSize: "35%" }  // 予備
+    };
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
-    let audioBuffer = null;
-    let emergencyBuffer = null;
-    let sourceNode = null;
-    let emergencySource = null;
-    let isLoadingSound = false;
-    let wakeLock = null;
+    let audioBuffer = null, emergencyBuffer = null;
+    let sourceNode = null, emergencySource = null;
     let isEmergencyActive = false;
 
-    function preloadImages(urls) {
-        urls.forEach(url => {
-            const img = new Image();
-            img.src = url;
-        });
-    }
-
-    async function requestWakeLock() {
-        if ('wakeLock' in navigator) {
-            try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-        }
-    }
+    function preloadImages(urls) { urls.forEach(url => { const img = new Image(); img.src = url; }); }
 
     async function loadSound(url, type = 'main') {
-        isLoadingSound = true;
         try {
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
             const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
             if (type === 'main') audioBuffer = decodedData;
             if (type === 'emergency') emergencyBuffer = decodedData;
-        } catch (e) { console.error("Sound Load Error:", e); }
-        finally { isLoadingSound = false; }
+        } catch (e) { console.error(e); }
     }
 
-    // 防護無線タップ時
     function handleEmergencyTap() {
         const btn = document.getElementById('emergency-btn');
         const type = document.getElementById('emg-image-select').value;
-        
         if (!isEmergencyActive) { 
-            // 叩いた瞬間：割れた画像に変更
             btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
             startEmergency(true); 
         } else { 
-            // 停止時：画像は戻さない（割れたまま）
             stopEmergency(true); 
         }
     }
 
-    // 防護無線の見た目変更（ここでのみ画像をリセット可能）
+    // 見た目変更時にサイズ設定も更新
     function changeEmergencyImage() {
         const type = document.getElementById('emg-image-select').value;
         const btn = document.getElementById('emergency-btn');
-        if (isEmergencyActive) {
-            btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
-        } else {
-            // 新品の状態にリセット
+        const flashLayer = document.getElementById('emergency-flash-layer');
+        const config = EMG_CONFIG[type] || EMG_CONFIG["1"];
+
+        // 点滅レイヤーのサイズを画像に合わせる
+        flashLayer.style.width = config.flashSize;
+        flashLayer.style.height = config.flashSize;
+
+        // ボタン画像のリセット（未発動時のみnormalに戻す）
+        if (!isEmergencyActive) {
             btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
+        } else {
+            btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
         }
     }
 
@@ -316,11 +268,10 @@
     async function startEmergency(sendSignal = false) {
         if (isEmergencyActive && !sendSignal) return;
         if (sendSignal) isEmergencyActive = true;
-
         document.getElementById('emergency-container').classList.add('is-flashing');
         if (emergencyBuffer) {
             if (audioCtx.state !== 'running') await audioCtx.resume();
-            stopEmergencySound();
+            if (emergencySource) emergencySource.stop();
             emergencySource = audioCtx.createBufferSource();
             emergencySource.buffer = emergencyBuffer;
             emergencySource.loop = true;
@@ -333,39 +284,10 @@
     function stopEmergency(sendSignal = false) {
         if (sendSignal) isEmergencyActive = false;
         document.getElementById('emergency-container').classList.remove('is-flashing');
-        stopEmergencySound();
-        // 画像を戻す処理を削除しました
+        if (emergencySource) { try { emergencySource.stop(); } catch(e) {} emergencySource = null; }
         if (sendSignal && conn && conn.open) conn.send('EMG_OFF');
     }
 
-    function stopEmergencySound() {
-        if (emergencySource) {
-            try { emergencySource.stop(); } catch(e) {}
-            emergencySource = null;
-        }
-    }
-
-    function changeBuzzerImage() {
-        const select = document.getElementById('image-select');
-        const display = document.getElementById('buzzer-display');
-        const val = select.value;
-        display.style.backgroundImage = `url('${val}')`;
-        if (val.includes('buzzer3')) { display.style.borderRadius = "12px"; } else { display.style.borderRadius = "50%"; }
-    }
-
-    async function startBuzzer() {
-        if (!audioBuffer || isLoadingSound) return;
-        if (audioCtx.state !== 'running') { try { await audioCtx.resume(); } catch (e) {} }
-        stopBuzzer();
-        sourceNode = audioCtx.createBufferSource();
-        sourceNode.buffer = audioBuffer;
-        sourceNode.loop = true;
-        sourceNode.connect(audioCtx.destination);
-        sourceNode.start(0);
-        if (!wakeLock) requestWakeLock();
-    }
-
-    function stopBuzzer() { if (sourceNode) { try { sourceNode.stop(); } catch(e) {} sourceNode = null; } }
     function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
 
     window.addEventListener('load', () => {
@@ -374,74 +296,33 @@
         preloadImages([
             'emergency1_normal.png', 'emergency1_broken.png',
             'emergency2_normal.png', 'emergency2_broken.png',
-            'emergency3_normal.png', 'emergency3_broken.png',
-            'image_buzzer1.png', 'image_buzzer2.png', 'image_buzzer3.png'
+            'image_buzzer1.png'
         ]);
+        changeEmergencyImage(); // 初期サイズ設定
     });
 
-    // --- 通信ロジック ---
-    function generateShortId() {
-        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-        let res = '';
-        for (let i = 0; i < 8; i++) { res += chars.charAt(Math.floor(Math.random() * chars.length)); }
-        return res;
-    }
-
+    // --- PeerJS / UI ロジック (略称版) ---
+    function generateShortId() { return Math.random().toString(36).substr(2, 8).toUpperCase(); }
     const myId = generateShortId();
     const peer = new Peer(myId);
     let conn = null;
-    let qrcode = null;
-    let keepAliveInterval = null;
 
     function toggleSettings() {
-        const panel = document.getElementById('settings-panel');
-        if (panel.classList.contains('open')) { document.activeElement.blur(); }
-        panel.classList.toggle('open');
+        document.getElementById('settings-panel').classList.toggle('open');
         document.getElementById('settings-overlay').classList.toggle('open');
     }
 
-    function copyMyId() {
-        navigator.clipboard.writeText(myId).then(() => {
-            const btn = document.getElementById('copy-btn');
-            const display = document.getElementById('my-id-display');
-            const originalText = display.innerText;
-            display.innerText = "コピー完了！";
-            btn.style.display = "none";
-            setTimeout(() => { display.innerText = originalText; btn.style.display = "inline-flex"; }, 2000);
-        });
-    }
+    peer.on('open', (id) => { document.getElementById('my-id-display').innerText = "あなたのID: " + id; });
+    peer.on('connection', (c) => { conn = c; setupConnection(); });
 
-    peer.on('open', (id) => { 
-        document.getElementById('my-id-display').innerText = "あなたのID: " + id; 
-        document.getElementById('copy-btn').style.display = "inline-flex"; 
-        const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
-        if (!qrcode) { qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 180, height: 180, correctLevel : QRCode.CorrectLevel.M }); } else { qrcode.makeCode(inviteUrl); }
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetId = urlParams.get('id');
-        if (targetId && targetId.length === 8) { document.getElementById('peer-id').value = targetId; connectToPeer(targetId); }
-    });
-
-    peer.on('disconnected', () => { updateStatus(false); peer.reconnect(); });
-    peer.on('connection', (incomingConn) => { if (conn) { conn.close(); } conn = incomingConn; setupConnection(); });
-
-    function connectToPeer(targetId) {
-        const rawId = targetId || document.getElementById('peer-id').value;
-        const id = rawId.trim().toUpperCase();
-        if(!id || id === myId || (conn && conn.peer === id)) return;
-        if (conn) { conn.close(); }
-        conn = peer.connect(id, { reliable: false });
+    function connectToPeer() {
+        const id = document.getElementById('peer-id').value.trim().toUpperCase();
+        conn = peer.connect(id);
         setupConnection();
     }
 
     function setupConnection() {
-        if (!conn) return;
-        conn.on('open', () => {
-            updateStatus(true);
-            setTimeout(toggleSettings, 1000);
-            if (!wakeLock) requestWakeLock();
-            if (keepAliveInterval) clearInterval(keepAliveInterval);
-            keepAliveInterval = setInterval(() => { if (conn && conn.open) { conn.send('HEARTBEAT'); } }, 20000);
-        });
+        conn.on('open', () => { updateStatus(true); toggleSettings(); });
         conn.on('data', (data) => {
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
@@ -453,32 +334,28 @@
             }
             else if (data === 'EMG_OFF') { isEmergencyActive = false; stopEmergency(false); }
         });
-        conn.on('close', () => { updateStatus(false); if (keepAliveInterval) clearInterval(keepAliveInterval); });
-        conn.on('error', () => { updateStatus(false); if (keepAliveInterval) clearInterval(keepAliveInterval); });
     }
 
     function updateStatus(isConnected) {
-        const light = document.getElementById('status-light');
-        const text = document.getElementById('status');
-        if (isConnected) { light.classList.add('connected'); text.innerText = "接続完了！"; } else { light.classList.remove('connected'); text.innerText = "待機中"; conn = null; stopBuzzer(); stopEmergency(false); }
+        document.getElementById('status-light').style.background = isConnected ? '#0f0' : '#444';
+        document.getElementById('status').innerText = isConnected ? "接続完了！" : "待機中";
     }
 
+    function startBuzzer() {
+        if (!audioBuffer) return;
+        if (sourceNode) sourceNode.stop();
+        sourceNode = audioCtx.createBufferSource();
+        sourceNode.buffer = audioBuffer;
+        sourceNode.loop = true;
+        sourceNode.connect(audioCtx.destination);
+        sourceNode.start(0);
+    }
+    function stopBuzzer() { if (sourceNode) { sourceNode.stop(); sourceNode = null; } }
+
     const area = document.getElementById('tap-area');
-    document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
-    let lastTouchTime = 0;
-    document.addEventListener('touchstart', (e) => {
-        const now = Date.now();
-        if (now - lastTouchTime <= 300) { e.preventDefault(); }
-        lastTouchTime = now;
-        if (e.touches.length > 1) { e.preventDefault(); }
-        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.target.classList.contains('copy-btn')) { document.activeElement.blur(); }
-    }, { passive: false });
+    area.addEventListener('pointerdown', () => { startBuzzer(); if (conn) conn.send('ON'); });
+    area.addEventListener('pointerup', () => { stopBuzzer(); if (conn) conn.send('OFF'); });
 
-    area.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); startBuzzer(); if (conn && conn.open) conn.send('ON'); }, { passive: false });
-    area.addEventListener('pointerup', (e) => { e.preventDefault(); stopBuzzer(); if (conn && conn.open) conn.send('OFF'); }, { passive: false });
-    area.addEventListener('pointerleave', (e) => { stopBuzzer(); if (conn && conn.open) conn.send('OFF'); }, false);
-
-    window.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
     toggleSettings();
 </script>
 </body>
