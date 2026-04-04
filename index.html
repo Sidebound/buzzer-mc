@@ -232,6 +232,7 @@
     let audioBuffer = null, emergencyBuffer = null;
     let sourceNode = null, emergencySource = null;
     let isEmergencyActive = false;
+    let keepAliveTimer = null; // 【追加】接続維持タイマー用
 
     function preloadImages(urls) { urls.forEach(url => { const img = new Image(); img.src = url; }); }
 
@@ -255,7 +256,7 @@
             isEmergencyActive = true;
             btn.style.backgroundImage = `url('emergency${type}_broken.png')`; // ガラスを割る
             
-            // 信号送信（ブザーと同様に直接送る）
+            // 信号送信
             if (conn && conn.open) conn.send('EMG_ON');
             
             startEmergencyActions(); 
@@ -311,11 +312,9 @@
         flashLayer.style.height = config.flashSize;
         flashLayer.style.top = config.top;
 
-        // 設定変更時、まだ発報していなければ normal を表示
         if (!isEmergencyActive) {
             btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
         } else {
-            // 発報中なら broken を維持
             btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
         }
     }
@@ -376,6 +375,16 @@
         });
     }
 
+    // 【追加】30秒ごとの生存確認信号
+    function startKeepAlive() {
+        if (keepAliveTimer) clearInterval(keepAliveTimer);
+        keepAliveTimer = setInterval(() => {
+            if (conn && conn.open) {
+                conn.send('PING');
+            }
+        }, 30000);
+    }
+
     peer.on('open', (id) => { 
         document.getElementById('my-id-display').innerText = "あなたのID: " + id; 
         document.getElementById('copy-btn').style.display = "inline-flex";
@@ -414,22 +423,26 @@
             updateStatus(true); 
             loadNewSound();
             loadNewEmergencySound();
+            startKeepAlive(); // 【追加】接続時にタイマー開始
             setTimeout(toggleSettings, 1000);
         });
         conn.on('data', async (data) => {
             console.log("Data received:", data);
+            if (data === 'PING') return; // 【追加】PING信号は無視
+            
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
             else if (data === 'EMG_ON') {
-                // 【受信側】画像は割らずに、音と光のみ開始
                 startEmergencyActions();
             }
             else if (data === 'EMG_OFF') { 
-                // 【受信側】音と光を停止
                 stopEmergencyActions(); 
             }
         });
-        conn.on('close', () => updateStatus(false));
+        conn.on('close', () => {
+            updateStatus(false);
+            if (keepAliveTimer) clearInterval(keepAliveTimer); // 【追加】切断時にタイマー停止
+        });
     }
 
     function updateStatus(isConnected) {
