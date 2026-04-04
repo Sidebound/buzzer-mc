@@ -68,10 +68,6 @@
             cursor: pointer;
         }
 
-        #emergency-btn.broken {
-            /* JavaScriptで背景画像を制御するため、ここでは基本設定のみ */
-        }
-
         #emergency-flash-layer {
             position: absolute;
             top: 50%; left: 50%;
@@ -260,7 +256,6 @@
     let wakeLock = null;
     let isEmergencyActive = false;
 
-    // 画像プリロード関数
     function preloadImages(urls) {
         urls.forEach(url => {
             const img = new Image();
@@ -292,35 +287,34 @@
         const type = document.getElementById('emg-image-select').value;
         
         if (!isEmergencyActive) { 
-            btn.classList.add('broken');
+            // 叩いた瞬間：割れた画像に変更
             btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
             startEmergency(true); 
         } else { 
-            btn.classList.remove('broken');
-            btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
+            // 停止時：画像は戻さない（割れたまま）
             stopEmergency(true); 
         }
     }
 
-    // 防護無線の見た目変更
+    // 防護無線の見た目変更（ここでのみ画像をリセット可能）
     function changeEmergencyImage() {
         const type = document.getElementById('emg-image-select').value;
         const btn = document.getElementById('emergency-btn');
         if (isEmergencyActive) {
             btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
         } else {
+            // 新品の状態にリセット
             btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
         }
     }
 
-    // 防護無線の音色変更
     function loadNewEmergencySound() {
         const type = document.getElementById('emg-sound-select').value;
         loadSound(`emergency${type}.mp3`, 'emergency');
     }
 
     async function startEmergency(sendSignal = false) {
-        if (isEmergencyActive && !sendSignal) return; // 遠隔受信時はフラグ管理のみ
+        if (isEmergencyActive && !sendSignal) return;
         if (sendSignal) isEmergencyActive = true;
 
         document.getElementById('emergency-container').classList.add('is-flashing');
@@ -340,6 +334,7 @@
         if (sendSignal) isEmergencyActive = false;
         document.getElementById('emergency-container').classList.remove('is-flashing');
         stopEmergencySound();
+        // 画像を戻す処理を削除しました
         if (sendSignal && conn && conn.open) conn.send('EMG_OFF');
     }
 
@@ -350,7 +345,6 @@
         }
     }
 
-    // ブザー設定
     function changeBuzzerImage() {
         const select = document.getElementById('image-select');
         const display = document.getElementById('buzzer-display');
@@ -374,12 +368,9 @@
     function stopBuzzer() { if (sourceNode) { try { sourceNode.stop(); } catch(e) {} sourceNode = null; } }
     function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
 
-    // 初期化
     window.addEventListener('load', () => {
         loadSound('ブザー1.mp3', 'main');
         loadSound('emergency1.mp3', 'emergency');
-        
-        // 全画像のプリロード
         preloadImages([
             'emergency1_normal.png', 'emergency1_broken.png',
             'emergency2_normal.png', 'emergency2_broken.png',
@@ -454,7 +445,12 @@
         conn.on('data', (data) => {
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
-            else if (data === 'EMG_ON') { isEmergencyActive = true; startEmergency(false); }
+            else if (data === 'EMG_ON') {
+                isEmergencyActive = true;
+                const type = document.getElementById('emg-image-select').value;
+                document.getElementById('emergency-btn').style.backgroundImage = `url('emergency${type}_broken.png')`;
+                startEmergency(false);
+            }
             else if (data === 'EMG_OFF') { isEmergencyActive = false; stopEmergency(false); }
         });
         conn.on('close', () => { updateStatus(false); if (keepAliveInterval) clearInterval(keepAliveInterval); });
