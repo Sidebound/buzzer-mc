@@ -32,7 +32,7 @@
             user-select: none !important;
             -webkit-touch-callout: none !important;
             -webkit-tap-highlight-color: transparent !important;
-            box-sizing: border-box; /* はみ出し防止 */
+            box-sizing: border-box;
         }
 
         html, body {
@@ -64,11 +64,11 @@
         }
 
         #emergency-flash-layer {
-            position: absolute; top: 50%; left: 50%;
+            position: absolute; 
+            top: 50%; left: 50%; /* JSで動的に上書き */
             transform: translate(-50%, -50%);
             border-radius: 50%; background-color: transparent;
             pointer-events: none;
-            width: 22%; height: 22%; /* 初期値 */
         }
 
         @keyframes flash-white {
@@ -128,7 +128,7 @@
         }
         #settings-panel.open { right: 0; }
 
-        .setting-item { margin-bottom: 24px; text-align: center; width: 100%; }
+        .setting-item { margin-bottom: 24px; text-align: center; }
         .setting-label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #aaa; text-align: left; }
         
         input, select { 
@@ -207,24 +207,25 @@
         <div class="setting-item">
             <label class="setting-label">音色:</label>
             <select id="emg-sound-select" onchange="loadNewEmergencySound()">
-                <option value="1">タイプ１ (発報)</option>
-                <option value="2">タイプ２ (防護発報)</option>
+                <option value="1">タイプ１</option>
+                <option value="2">タイプ２</option>
+                <option value="3">タイプ３</option>
             </select>
         </div>
         <div class="setting-item">
             <label class="setting-label">見た目:</label>
             <select id="emg-image-select" onchange="changeEmergencyImage()">
-                <option value="1">タイプ１ (発報)</option>
-                <option value="2">タイプ２ (防護発報)</option>
+                <option value="1">タイプ１</option>
+                <option value="2">タイプ２</option>
             </select>
         </div>
     </div>
 
 <script>
-    // 防護無線設定データ
+    // タイプ別の座標・サイズ設定
     const EMG_CONFIG = {
-        "1": { flashSize: "22%" },
-        "2": { flashSize: "32%" }
+        "1": { flashSize: "22%", top: "50%" },
+        "2": { flashSize: "32%", top: "54%" } // タイプ2は少し下へ
     };
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -232,7 +233,6 @@
     let audioBuffer = null, emergencyBuffer = null;
     let sourceNode = null, emergencySource = null;
     let isEmergencyActive = false;
-    let wakeLock = null;
 
     function preloadImages(urls) { urls.forEach(url => { const img = new Image(); img.src = url; }); }
 
@@ -262,8 +262,11 @@
         const btn = document.getElementById('emergency-btn');
         const flashLayer = document.getElementById('emergency-flash-layer');
         const config = EMG_CONFIG[type] || EMG_CONFIG["1"];
+        
         flashLayer.style.width = config.flashSize;
         flashLayer.style.height = config.flashSize;
+        flashLayer.style.top = config.top; // 位置調整
+
         if (!isEmergencyActive) {
             btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
         } else {
@@ -319,7 +322,7 @@
     function stopBuzzer() { if (sourceNode) { sourceNode.stop(); sourceNode = null; } }
     function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
 
-    // --- PeerJS / QRコード ロジック ---
+    // --- PeerJS / QRコード / URLパラメータロジック ---
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let res = '';
@@ -348,19 +351,36 @@
     peer.on('open', (id) => { 
         document.getElementById('my-id-display').innerText = "あなたのID: " + id; 
         document.getElementById('copy-btn').style.display = "inline-flex";
+        
+        // QRコード生成
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
-        if (!qrcode) {
-            qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 180, height: 180 });
-        } else {
-            qrcode.makeCode(inviteUrl);
+        if (typeof QRCode !== 'undefined') {
+            if (!qrcode) {
+                qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 160, height: 160 });
+            } else {
+                qrcode.makeCode(inviteUrl);
+            }
+        }
+
+        // URLパラメータがあれば自動接続
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get('id');
+        if (targetId && targetId.length === 8 && targetId !== myId) {
+            document.getElementById('peer-id').value = targetId;
+            connectToPeer(targetId);
         }
     });
 
-    peer.on('connection', (c) => { conn = c; setupConnection(); });
+    peer.on('connection', (incomingConn) => { 
+        if (conn) conn.close();
+        conn = incomingConn; 
+        setupConnection(); 
+    });
 
-    function connectToPeer() {
-        const id = document.getElementById('peer-id').value.trim().toUpperCase();
+    function connectToPeer(targetId) {
+        const id = targetId || document.getElementById('peer-id').value.trim().toUpperCase();
         if(!id || id === myId) return;
+        if (conn) conn.close();
         conn = peer.connect(id);
         setupConnection();
     }
@@ -381,6 +401,7 @@
             }
             else if (data === 'EMG_OFF') { isEmergencyActive = false; stopEmergency(false); }
         });
+        conn.on('close', () => updateStatus(false));
     }
 
     function updateStatus(isConnected) {
