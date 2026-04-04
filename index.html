@@ -222,10 +222,9 @@
     </div>
 
 <script>
-    // タイプ別の座標・サイズ設定
     const EMG_CONFIG = {
         "1": { flashSize: "22%", top: "50%" },
-        "2": { flashSize: "32%", top: "54%" }
+        "2": { flashSize: "32%", top: "60%" }
     };
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -243,7 +242,8 @@
             const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
             if (type === 'main') audioBuffer = decodedData;
             if (type === 'emergency') emergencyBuffer = decodedData;
-        } catch (e) { console.error(e); }
+            console.log(`${url} Loaded successfully`);
+        } catch (e) { console.error("Sound Load Error:", e); }
     }
 
     // --- 防護無線 ロジック ---
@@ -280,6 +280,12 @@
     async function startEmergency(sendSignal = false) {
         if (isEmergencyActive && !sendSignal) return;
         if (sendSignal) isEmergencyActive = true;
+        
+        // もしバッファが空なら、現在選択されている音色をロード（受信側対策）
+        if (!emergencyBuffer) {
+            await loadNewEmergencySound();
+        }
+
         document.getElementById('emergency-container').classList.add('is-flashing');
         if (emergencyBuffer) {
             if (audioCtx.state !== 'running') await audioCtx.resume();
@@ -305,7 +311,6 @@
         const id = document.getElementById('image-select').value;
         const display = document.getElementById('buzzer-display');
         display.style.backgroundImage = `url('buzzer${id}.png')`;
-        // 3番（連絡用）だけ四角くする仕様を維持
         display.style.borderRadius = id === "3" ? "12px" : "50%";
     }
 
@@ -315,7 +320,7 @@
     }
 
     async function startBuzzer() {
-        if (!audioBuffer) return;
+        if (!audioBuffer) await loadNewSound(); // ロード漏れ対策
         if (audioCtx.state !== 'running') await audioCtx.resume();
         if (sourceNode) sourceNode.stop();
         sourceNode = audioCtx.createBufferSource();
@@ -355,7 +360,6 @@
     peer.on('open', (id) => { 
         document.getElementById('my-id-display').innerText = "あなたのID: " + id; 
         document.getElementById('copy-btn').style.display = "inline-flex";
-        
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
         if (typeof QRCode !== 'undefined') {
             if (!qrcode) {
@@ -364,7 +368,6 @@
                 qrcode.makeCode(inviteUrl);
             }
         }
-
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
         if (targetId && targetId.length === 8 && targetId !== myId) {
@@ -390,14 +393,19 @@
     function setupConnection() {
         conn.on('open', () => { 
             updateStatus(true); 
+            // 接続時に相手がどの音色を使っているか不明なため、とりあえず今の選択をロードしておく
+            loadNewSound();
+            loadNewEmergencySound();
             setTimeout(toggleSettings, 1000);
         });
-        conn.on('data', (data) => {
+        conn.on('data', async (data) => {
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
             else if (data === 'EMG_ON') {
                 isEmergencyActive = true;
                 changeEmergencyImage();
+                // 音声データがなければロードしてから開始
+                if(!emergencyBuffer) await loadNewEmergencySound();
                 startEmergency(false);
             }
             else if (data === 'EMG_OFF') { isEmergencyActive = false; stopEmergency(false); }
@@ -415,17 +423,13 @@
     area.addEventListener('pointerup', () => { stopBuzzer(); if (conn) conn.send('OFF'); });
 
     window.addEventListener('load', () => {
-        // 初期サウンド読み込み
-        loadSound('buzzer1.mp3', 'main');
-        loadSound('emergency1.mp3', 'emergency');
-        
-        // 全リソースのプリロード
+        loadNewSound();
+        loadNewEmergencySound();
         preloadImages([
             'emergency1_normal.png', 'emergency1_broken.png',
             'emergency2_normal.png', 'emergency2_broken.png',
             'buzzer1.png', 'buzzer2.png', 'buzzer3.png'
         ]);
-        
         changeEmergencyImage();
     });
 
