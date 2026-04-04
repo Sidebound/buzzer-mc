@@ -48,14 +48,17 @@
             box-sizing: border-box;
         }
 
-        /* --- 防護無線ボタン：左上へ移動 & 大型化 --- */
+        /* --- 防護無線ボタン：超大型化（ブザーの半分程度） --- */
         #emergency-container {
             position: fixed; 
-            top: 20px; 
-            left: 20px; /* 右から左へ */
-            width: 120px; /* 100pxから120pxへ大型化 */
-            height: 120px;
-            z-index: 30;
+            top: 15px; 
+            left: 15px;
+            /* ブザー(90vw)の半分、約45vwに設定 */
+            width: 45vw; 
+            height: 45vw;
+            max-width: 240px; 
+            max-height: 240px;
+            z-index: 30; /* 設定パネル(100)より低く設定 */
         }
 
         #emergency-btn {
@@ -89,22 +92,22 @@
             animation: flash-white 0.3s infinite;
         }
 
-        /* --- 設定アイコン：右上へ移動 --- */
+        /* --- 設定アイコン：右上 --- */
         #settings-icon {
             position: fixed; 
             top: 20px; 
-            right: 20px; /* 左から右へ */
+            right: 20px;
             width: 50px; height: 50px;
             background: rgba(255, 255, 255, 0.15);
             backdrop-filter: blur(5px);
             border-radius: 50%;
             display: flex; justify-content: center; align-items: center;
             font-size: 1.8rem; color: rgba(255,255,255,0.8);
-            cursor: pointer; z-index: 10;
+            cursor: pointer; z-index: 40; /* 防護無線より上 */
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        /* --- 既存ブザー：配置維持 --- */
+        /* --- メインブザー --- */
         #buzzer-display {
             position: relative;
             width: 90vw; height: 90vw;
@@ -140,10 +143,25 @@
             pointer-events: none;
         }
 
-        #settings-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); opacity: 0; visibility: hidden; transition: opacity 0.3s; z-index: 15; }
+        /* --- 設定パネル：レイヤー順序を最前面に修正 --- */
+        #settings-overlay { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: rgba(0,0,0,0.5); opacity: 0; visibility: hidden; 
+            transition: opacity 0.3s; z-index: 90; /* 重なり順を上げました */
+        }
         #settings-overlay.open { opacity: 1; visibility: visible; }
-        #settings-panel { position: fixed; top: 0; right: -320px; width: 280px; max-width: 85vw; height: 100vh; height: 100dvh; background: rgba(20, 20, 20, 0.98); color: #fff; padding: 20px 20px 80px 20px; box-sizing: border-box; box-shadow: -10px 0 30px rgba(0,0,0,0.5); transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 20; overflow-y: auto; touch-action: pan-y !important; }
+
+        #settings-panel { 
+            position: fixed; top: 0; right: -320px; width: 280px; max-width: 85vw; 
+            height: 100vh; height: 100dvh; background: rgba(20, 20, 20, 0.98); 
+            color: #fff; padding: 20px 20px 80px 20px; box-sizing: border-box; 
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5); 
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 100; /* 全ての要素より上に表示 */
+            overflow-y: auto; touch-action: pan-y !important; 
+        }
         #settings-panel.open { right: 0; }
+
         .setting-item { margin-bottom: 24px; text-align: center; }
         input, select { width: 100%; padding: 12px; box-sizing: border-box; margin-bottom: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 5px; font-size: 16px !important; }
         button { width: 100%; padding: 12px; background: #6b8e23; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
@@ -210,7 +228,6 @@
     </div>
 
 <script>
-    /* JavaScriptロジックは一切変更せず、CSSによる配置変更のみを反映いたしました */
     if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -317,8 +334,9 @@
     let keepAliveInterval = null;
 
     function toggleSettings() {
-        if (document.getElementById('settings-panel').classList.contains('open')) { document.activeElement.blur(); }
-        document.getElementById('settings-panel').classList.toggle('open');
+        const panel = document.getElementById('settings-panel');
+        if (panel.classList.contains('open')) { document.activeElement.blur(); }
+        panel.classList.toggle('open');
         document.getElementById('settings-overlay').classList.toggle('open');
     }
 
