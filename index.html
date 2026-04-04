@@ -65,7 +65,7 @@
 
         #emergency-flash-layer {
             position: absolute; 
-            top: 50%; left: 50%; /* JSで動的に上書き */
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             border-radius: 50%; background-color: transparent;
             pointer-events: none;
@@ -97,7 +97,7 @@
         #buzzer-display {
             position: relative; width: 90vw; height: 90vw;
             max-width: 500px; max-height: 500px;
-            background-image: url('image_buzzer1.png'); 
+            background-image: url('buzzer1.png'); 
             background-size: cover; background-position: center;
             border-radius: 50%; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
             transition: border-radius 0.3s; margin-bottom: 30px;
@@ -187,17 +187,17 @@
         <div class="setting-item">
             <label class="setting-label">音色:</label>
             <select id="sound-select" onchange="loadNewSound()">
-                <option value="ブザー1.mp3">ブザー１</option>
-                <option value="ブザー2.mp3">ブザー２</option>
-                <option value="電鈴1.mp3">電鈴１</option>
+                <option value="1">ブザー１</option>
+                <option value="2">ブザー２</option>
+                <option value="3">ブザー３</option>
             </select>
         </div>
         <div class="setting-item">
             <label class="setting-label">見た目:</label>
             <select id="image-select" onchange="changeBuzzerImage()">
-                <option value="image_buzzer1.png">オリーブ</option>
-                <option value="image_buzzer2.png">マルーン</option>
-                <option value="image_buzzer3.png">連絡用</option>
+                <option value="1">オリーブ</option>
+                <option value="2">マルーン</option>
+                <option value="3">連絡用</option>
             </select>
         </div>
 
@@ -225,7 +225,7 @@
     // タイプ別の座標・サイズ設定
     const EMG_CONFIG = {
         "1": { flashSize: "22%", top: "50%" },
-        "2": { flashSize: "32%", top: "54%" } // タイプ2は少し下へ
+        "2": { flashSize: "32%", top: "54%" }
     };
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -246,6 +246,7 @@
         } catch (e) { console.error(e); }
     }
 
+    // --- 防護無線 ロジック ---
     function handleEmergencyTap() {
         const btn = document.getElementById('emergency-btn');
         const type = document.getElementById('emg-image-select').value;
@@ -265,18 +266,15 @@
         
         flashLayer.style.width = config.flashSize;
         flashLayer.style.height = config.flashSize;
-        flashLayer.style.top = config.top; // 位置調整
+        flashLayer.style.top = config.top;
 
-        if (!isEmergencyActive) {
-            btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
-        } else {
-            btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
-        }
+        const state = isEmergencyActive ? '_broken' : '_normal';
+        btn.style.backgroundImage = `url('emergency${type}${state}.png')`;
     }
 
     function loadNewEmergencySound() {
-        const type = document.getElementById('emg-sound-select').value;
-        loadSound(`emergency${type}.mp3`, 'emergency');
+        const id = document.getElementById('emg-sound-select').value;
+        loadSound(`emergency${id}.mp3`, 'emergency');
     }
 
     async function startEmergency(sendSignal = false) {
@@ -302,11 +300,18 @@
         if (sendSignal && conn && conn.open) conn.send('EMG_OFF');
     }
 
+    // --- ブザー ロジック ---
     function changeBuzzerImage() {
-        const val = document.getElementById('image-select').value;
+        const id = document.getElementById('image-select').value;
         const display = document.getElementById('buzzer-display');
-        display.style.backgroundImage = `url('${val}')`;
-        display.style.borderRadius = val.includes('buzzer3') ? "12px" : "50%";
+        display.style.backgroundImage = `url('buzzer${id}.png')`;
+        // 3番（連絡用）だけ四角くする仕様を維持
+        display.style.borderRadius = id === "3" ? "12px" : "50%";
+    }
+
+    function loadNewSound() {
+        const id = document.getElementById('sound-select').value;
+        loadSound(`buzzer${id}.mp3`, 'main');
     }
 
     async function startBuzzer() {
@@ -320,9 +325,8 @@
         sourceNode.start(0);
     }
     function stopBuzzer() { if (sourceNode) { sourceNode.stop(); sourceNode = null; } }
-    function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
 
-    // --- PeerJS / QRコード / URLパラメータロジック ---
+    // --- PeerJS / 通信ロジック ---
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let res = '';
@@ -352,7 +356,6 @@
         document.getElementById('my-id-display').innerText = "あなたのID: " + id; 
         document.getElementById('copy-btn').style.display = "inline-flex";
         
-        // QRコード生成
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
         if (typeof QRCode !== 'undefined') {
             if (!qrcode) {
@@ -362,7 +365,6 @@
             }
         }
 
-        // URLパラメータがあれば自動接続
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
         if (targetId && targetId.length === 8 && targetId !== myId) {
@@ -395,8 +397,7 @@
             else if (data === 'OFF') stopBuzzer();
             else if (data === 'EMG_ON') {
                 isEmergencyActive = true;
-                const type = document.getElementById('emg-image-select').value;
-                document.getElementById('emergency-btn').style.backgroundImage = `url('emergency${type}_broken.png')`;
+                changeEmergencyImage();
                 startEmergency(false);
             }
             else if (data === 'EMG_OFF') { isEmergencyActive = false; stopEmergency(false); }
@@ -414,13 +415,17 @@
     area.addEventListener('pointerup', () => { stopBuzzer(); if (conn) conn.send('OFF'); });
 
     window.addEventListener('load', () => {
-        loadSound('ブザー1.mp3', 'main');
+        // 初期サウンド読み込み
+        loadSound('buzzer1.mp3', 'main');
         loadSound('emergency1.mp3', 'emergency');
+        
+        // 全リソースのプリロード
         preloadImages([
             'emergency1_normal.png', 'emergency1_broken.png',
             'emergency2_normal.png', 'emergency2_broken.png',
-            'image_buzzer1.png', 'image_buzzer2.png', 'image_buzzer3.png'
+            'buzzer1.png', 'buzzer2.png', 'buzzer3.png'
         ]);
+        
         changeEmergencyImage();
     });
 
