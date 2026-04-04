@@ -224,7 +224,7 @@
 <script>
     const EMG_CONFIG = {
         "1": { flashSize: "22%", top: "50%" },
-        "2": { flashSize: "32%", top: "60%" }
+        "2": { flashSize: "32%", top: "54%" }
     };
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -242,7 +242,6 @@
             const decodedData = await audioCtx.decodeAudioData(arrayBuffer);
             if (type === 'main') audioBuffer = decodedData;
             if (type === 'emergency') emergencyBuffer = decodedData;
-            console.log(`${url} Loaded successfully`);
         } catch (e) { console.error("Sound Load Error:", e); }
     }
 
@@ -251,6 +250,7 @@
         const btn = document.getElementById('emergency-btn');
         const type = document.getElementById('emg-image-select').value;
         if (!isEmergencyActive) { 
+            // 自分で押した時（発報側）: ガラスを割る
             btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
             startEmergency(true); 
         } else { 
@@ -268,20 +268,22 @@
         flashLayer.style.height = config.flashSize;
         flashLayer.style.top = config.top;
 
-        const state = isEmergencyActive ? '_broken' : '_normal';
-        btn.style.backgroundImage = `url('emergency${type}${state}.png')`;
+        // 受信時は _normal のまま点滅させるためのロジックを handleEmergencyTap と分離
+        if (!isEmergencyActive) {
+            btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
+        }
     }
 
     function loadNewEmergencySound() {
         const id = document.getElementById('emg-sound-select').value;
-        loadSound(`emergency${id}.mp3`, 'emergency');
+        return loadSound(`emergency${id}.mp3`, 'emergency');
     }
 
     async function startEmergency(sendSignal = false) {
         if (isEmergencyActive && !sendSignal) return;
         if (sendSignal) isEmergencyActive = true;
         
-        // もしバッファが空なら、現在選択されている音色をロード（受信側対策）
+        // 音声データがない場合は即座にロード（自身の現在設定を使用）
         if (!emergencyBuffer) {
             await loadNewEmergencySound();
         }
@@ -302,6 +304,11 @@
     function stopEmergency(sendSignal = false) {
         if (sendSignal) isEmergencyActive = false;
         document.getElementById('emergency-container').classList.remove('is-flashing');
+        
+        // 停止時は画像を normal に戻す
+        const type = document.getElementById('emg-image-select').value;
+        document.getElementById('emergency-btn').style.backgroundImage = `url('emergency${type}_normal.png')`;
+
         if (emergencySource) { try { emergencySource.stop(); } catch(e) {} emergencySource = null; }
         if (sendSignal && conn && conn.open) conn.send('EMG_OFF');
     }
@@ -320,7 +327,7 @@
     }
 
     async function startBuzzer() {
-        if (!audioBuffer) await loadNewSound(); // ロード漏れ対策
+        if (!audioBuffer) await loadNewSound();
         if (audioCtx.state !== 'running') await audioCtx.resume();
         if (sourceNode) sourceNode.stop();
         sourceNode = audioCtx.createBufferSource();
@@ -393,7 +400,6 @@
     function setupConnection() {
         conn.on('open', () => { 
             updateStatus(true); 
-            // 接続時に相手がどの音色を使っているか不明なため、とりあえず今の選択をロードしておく
             loadNewSound();
             loadNewEmergencySound();
             setTimeout(toggleSettings, 1000);
@@ -403,12 +409,14 @@
             else if (data === 'OFF') stopBuzzer();
             else if (data === 'EMG_ON') {
                 isEmergencyActive = true;
-                changeEmergencyImage();
-                // 音声データがなければロードしてから開始
-                if(!emergencyBuffer) await loadNewEmergencySound();
+                // 受信側ロジック: 画像は normal のまま、点滅と音を開始
+                changeEmergencyImage(); 
                 startEmergency(false);
             }
-            else if (data === 'EMG_OFF') { isEmergencyActive = false; stopEmergency(false); }
+            else if (data === 'EMG_OFF') { 
+                isEmergencyActive = false; 
+                stopEmergency(false); 
+            }
         });
         conn.on('close', () => updateStatus(false));
     }
