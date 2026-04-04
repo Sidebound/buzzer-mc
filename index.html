@@ -26,7 +26,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * {
-            /* 基本的に全要素でダブルタップズームを抑制 */
             touch-action: manipulation;
             -webkit-text-size-adjust: none;
             -webkit-user-select: none !important;
@@ -49,6 +48,27 @@
             padding-bottom: 20px;
         }
 
+        /* --- 厳重注意事項モーダル --- */
+        #warning-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000; color: #fff;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000; padding: 20px;
+        }
+        #warning-content {
+            max-width: 400px; width: 95%;
+            border: 2px solid #ff0000; background: #1a1a1a;
+            padding: 25px; border-radius: 10px; text-align: center;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+        #warning-content h2 { color: #ff0000; margin-top: 0; font-size: 1.4rem; }
+        #warning-content p { font-size: 0.95rem; line-height: 1.6; text-align: left; margin-bottom: 25px; }
+        #agree-btn {
+            background: #ff0000; color: #fff; border: none; padding: 15px 30px;
+            font-weight: bold; border-radius: 5px; cursor: pointer; width: 100%;
+            font-size: 1.1rem;
+        }
+
         /* --- 防護無線ボタン --- */
         #emergency-container {
             position: fixed; top: 15px; left: 15px;
@@ -56,30 +76,24 @@
             max-width: 240px; max-height: 240px;
             z-index: 30;
         }
-
         #emergency-btn {
             width: 100%; height: 100%;
             background-image: url('emergency1_normal.png');
             background-size: contain; background-repeat: no-repeat;
             position: relative; cursor: pointer;
         }
-
         #emergency-flash-layer {
-            position: absolute; 
-            top: 50%; left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             border-radius: 50%; background-color: transparent;
             pointer-events: none;
         }
-
         @keyframes flash-white {
             0% { background-color: rgba(255, 255, 255, 1); }
             50% { background-color: transparent; }
             100% { background-color: rgba(255, 255, 255, 1); }
         }
-        .is-flashing #emergency-flash-layer {
-            animation: flash-white 0.3s infinite;
-        }
+        .is-flashing #emergency-flash-layer { animation: flash-white 0.3s infinite; }
 
         /* --- 設定アイコン --- */
         #settings-icon {
@@ -103,13 +117,11 @@
             border-radius: 50%; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
             transition: border-radius 0.3s; margin-bottom: 30px;
         }
-
         #tap-area {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             width: 55%; height: 55%; border-radius: 50%;
             cursor: pointer; z-index: 5;
-            /* ブザーエリアはズームやスクロールを一切受け付けない */
             touch-action: none !important;
         }
 
@@ -120,7 +132,6 @@
             transition: opacity 0.3s; z-index: 90; 
         }
         #settings-overlay.open { opacity: 1; visibility: visible; }
-
         #settings-panel { 
             position: fixed; top: 0; right: -320px; width: 280px; max-width: 85vw; 
             height: 100vh; height: 100dvh; background: rgba(20, 20, 20, 0.98); 
@@ -130,29 +141,37 @@
             overflow-y: auto;
         }
         #settings-panel.open { right: 0; }
-
         .setting-item { margin-bottom: 24px; text-align: center; }
         .setting-label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #aaa; text-align: left; }
-        
         input, select { 
             width: 100%; padding: 12px; margin-bottom: 10px; 
             background: #333; border: 1px solid #555; color: white; 
             border-radius: 5px; font-size: 16px !important; 
         }
-        button { 
+        .panel-btn { 
             width: 100%; padding: 12px; background: #6b8e23; border: none; 
             color: white; border-radius: 5px; cursor: pointer; font-weight: bold; 
         }
-
         #status-light { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #444; margin-right: 5px; }
         #status-light.connected { background: #0f0; box-shadow: 0 0 10px #0f0; }
-        
         #qrcode-container { background: white; padding: 10px; display: inline-block; margin: 10px auto; border-radius: 8px; max-width: 100%; }
         #qrcode img { max-width: 100% !important; height: auto !important; display: block; margin: 0 auto; }
         .copy-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin-left: 8px; background: #444; color: #fff; border-radius: 4px; cursor: pointer; vertical-align: middle; font-size: 14px; border: 1px solid #666; }
     </style>
 </head>
 <body>
+
+    <div id="warning-overlay">
+        <div id="warning-content">
+            <h2>【厳重注意事項】</h2>
+            <p>
+                本アプリはジョーク・鑑賞用です。<br><br>
+                実際の<b>鉄道施設内、列車内、および線路付近</b>での使用は、列車の運行を妨害する恐れがあるため、<b>絶対に禁止</b>します。<br><br>
+                万一、実際の運行に支障をきたした場合、制作者は一切の責任を負いません。
+            </p>
+            <button id="agree-btn">同意して音声を有効にする</button>
+        </div>
+    </div>
 
     <div id="emergency-container">
         <div id="emergency-btn" onclick="handleEmergencyTap()">
@@ -169,73 +188,39 @@
 
     <div id="settings-panel">
         <div style="text-align: right; cursor: pointer; padding: 10px 0;" onclick="toggleSettings()">✖ 閉じる</div>
-        
         <h3>通信設定</h3>
         <div class="setting-item">
             <div id="qrcode-container"><div id="qrcode"></div></div>
-            <p>
-                <small id="my-id-display">ID発行中...</small>
-                <span id="copy-btn" class="copy-btn" onclick="copyMyId()" style="display:none;">📋</span>
-            </p>
+            <p><small id="my-id-display">ID発行中...</small><span id="copy-btn" class="copy-btn" onclick="copyMyId()" style="display:none;">📋</span></p>
         </div>
         <div class="setting-item">
-            <input type="text" id="peer-id" placeholder="相手のID(8文字)を入力">
-            <button onclick="connectToPeer()">接続する</button>
+            <input type="text" id="peer-id" placeholder="相手のIDを入力">
+            <button class="panel-btn" onclick="connectToPeer()">接続する</button>
         </div>
         <div class="setting-item"><p><span id="status-light"></span> <span id="status">待機中</span></p></div>
-
         <hr style="border: 0.5px solid #444; margin: 20px 0;">
-
         <h3>ブザー設定</h3>
-        <div class="setting-item">
-            <label class="setting-label">音色:</label>
-            <select id="sound-select" onchange="loadNewSound()">
-                <option value="1">ブザー１</option>
-                <option value="2">ブザー２</option>
-                <option value="3">ブザー３</option>
-            </select>
-        </div>
-        <div class="setting-item">
-            <label class="setting-label">見た目:</label>
-            <select id="image-select" onchange="changeBuzzerImage()">
-                <option value="1">オリーブ</option>
-                <option value="2">マルーン</option>
-                <option value="3">連絡用</option>
-            </select>
-        </div>
-
+        <div class="setting-item"><label class="setting-label">音色:</label><select id="sound-select" onchange="loadNewSound()"><option value="1">ブザー１</option><option value="2">ブザー２</option><option value="3">ブザー３</option></select></div>
+        <div class="setting-item"><label class="setting-label">見た目:</label><select id="image-select" onchange="changeBuzzerImage()"><option value="1">オリーブ</option><option value="2">マルーン</option><option value="3">連絡用</option></select></div>
         <hr style="border: 0.5px solid #444; margin: 20px 0;">
-
         <h3>防護無線設定</h3>
-        <div class="setting-item">
-            <label class="setting-label">音色:</label>
-            <select id="emg-sound-select" onchange="loadNewEmergencySound()">
-                <option value="1">タイプ１</option>
-                <option value="2">タイプ２</option>
-                <option value="3">タイプ３</option>
-            </select>
-        </div>
-        <div class="setting-item">
-            <label class="setting-label">見た目:</label>
-            <select id="emg-image-select" onchange="changeEmergencyImage()">
-                <option value="1">タイプ１</option>
-                <option value="2">タイプ２</option>
-            </select>
-        </div>
+        <div class="setting-item"><label class="setting-label">音色:</label><select id="emg-sound-select" onchange="loadNewEmergencySound()"><option value="1">タイプ１</option><option value="2">タイプ２</option><option value="3">タイプ３</option></select></div>
+        <div class="setting-item"><label class="setting-label">見た目:</label><select id="emg-image-select" onchange="changeEmergencyImage()"><option value="1">タイプ１</option><option value="2">タイプ２</option></select></div>
     </div>
 
 <script>
-    const EMG_CONFIG = {
-        "1": { flashSize: "22%", top: "50%" },
-        "2": { flashSize: "32%", top: "57%" }
-    };
-
+    const EMG_CONFIG = { "1": { flashSize: "22%", top: "50%" }, "2": { flashSize: "32%", top: "57%" } };
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
-    let audioBuffer = null, emergencyBuffer = null;
-    let sourceNode = null, emergencySource = null;
-    let isEmergencyActive = false;
-    let keepAliveTimer = null; 
+    let audioBuffer = null, emergencyBuffer = null, sourceNode = null, emergencySource = null;
+    let isEmergencyActive = false, keepAliveTimer = null;
+
+    // --- 起動初期化 ---
+    document.getElementById('agree-btn').addEventListener('click', async () => {
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+        document.getElementById('warning-overlay').style.display = 'none';
+        toggleSettings(); // 初回のみ設定を開く
+    });
 
     function preloadImages(urls) { urls.forEach(url => { const img = new Image(); img.src = url; }); }
 
@@ -249,20 +234,15 @@
         } catch (e) { console.error("Sound Load Error:", e); }
     }
 
-    // --- 防護無線 ロジック ---
+    // --- 防護無線 ---
     function handleEmergencyTap() {
         const btn = document.getElementById('emergency-btn');
         const type = document.getElementById('emg-image-select').value;
-
         if (!isEmergencyActive) { 
-            isEmergencyActive = true;
-            btn.style.backgroundImage = `url('emergency${type}_broken.png')`; 
-            if (conn && conn.open) conn.send('EMG_ON');
-            startEmergencyActions(); 
+            isEmergencyActive = true; btn.style.backgroundImage = `url('emergency${type}_broken.png')`; 
+            if (conn && conn.open) conn.send('EMG_ON'); startEmergencyActions(); 
         } else { 
-            isEmergencyActive = false;
-            if (conn && conn.open) conn.send('EMG_OFF');
-            stopEmergencyActions(); 
+            isEmergencyActive = false; if (conn && conn.open) conn.send('EMG_OFF'); stopEmergencyActions(); 
         }
     }
 
@@ -272,20 +252,14 @@
         if (emergencyBuffer) {
             if (audioCtx.state !== 'running') await audioCtx.resume();
             if (emergencySource) emergencySource.stop();
-            emergencySource = audioCtx.createBufferSource();
-            emergencySource.buffer = emergencyBuffer;
-            emergencySource.loop = true;
-            emergencySource.connect(audioCtx.destination);
-            emergencySource.start(0);
+            emergencySource = audioCtx.createBufferSource(); emergencySource.buffer = emergencyBuffer;
+            emergencySource.loop = true; emergencySource.connect(audioCtx.destination); emergencySource.start(0);
         }
     }
 
     function stopEmergencyActions() {
         document.getElementById('emergency-container').classList.remove('is-flashing');
-        if (emergencySource) { 
-            try { emergencySource.stop(); } catch(e) {} 
-            emergencySource = null; 
-        }
+        if (emergencySource) { try { emergencySource.stop(); } catch(e) {} emergencySource = null; }
     }
 
     function changeEmergencyImage() {
@@ -293,48 +267,29 @@
         const btn = document.getElementById('emergency-btn');
         const flashLayer = document.getElementById('emergency-flash-layer');
         const config = EMG_CONFIG[type] || EMG_CONFIG["1"];
-        flashLayer.style.width = config.flashSize;
-        flashLayer.style.height = config.flashSize;
-        flashLayer.style.top = config.top;
-        if (!isEmergencyActive) btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
-        else btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
+        flashLayer.style.width = config.flashSize; flashLayer.style.height = config.flashSize; flashLayer.style.top = config.top;
+        btn.style.backgroundImage = isEmergencyActive ? `url('emergency${type}_broken.png')` : `url('emergency${type}_normal.png')`;
     }
 
-    function loadNewEmergencySound() {
-        const id = document.getElementById('emg-sound-select').value;
-        return loadSound(`emergency${id}.mp3`, 'emergency');
-    }
+    function loadNewEmergencySound() { const id = document.getElementById('emg-sound-select').value; return loadSound(`emergency${id}.mp3`, 'emergency'); }
 
-    // --- ブザー ロジック ---
-    function changeBuzzerImage() {
-        const id = document.getElementById('image-select').value;
-        const display = document.getElementById('buzzer-display');
-        display.style.backgroundImage = `url('buzzer${id}.png')`;
-        display.style.borderRadius = id === "3" ? "12px" : "50%";
-    }
-
-    function loadNewSound() {
-        const id = document.getElementById('sound-select').value;
-        loadSound(`buzzer${id}.mp3`, 'main');
-    }
+    // --- ブザー ---
+    function changeBuzzerImage() { const id = document.getElementById('image-select').value; const display = document.getElementById('buzzer-display'); display.style.backgroundImage = `url('buzzer${id}.png')`; display.style.borderRadius = id === "3" ? "12px" : "50%"; }
+    function loadNewSound() { const id = document.getElementById('sound-select').value; loadSound(`buzzer${id}.mp3`, 'main'); }
 
     async function startBuzzer() {
         if (!audioBuffer) await loadNewSound();
         if (audioCtx.state !== 'running') await audioCtx.resume();
         if (sourceNode) sourceNode.stop();
-        sourceNode = audioCtx.createBufferSource();
-        sourceNode.buffer = audioBuffer;
-        sourceNode.loop = true;
-        sourceNode.connect(audioCtx.destination);
-        sourceNode.start(0);
+        sourceNode = audioCtx.createBufferSource(); sourceNode.buffer = audioBuffer;
+        sourceNode.loop = true; sourceNode.connect(audioCtx.destination); sourceNode.start(0);
     }
     function stopBuzzer() { if (sourceNode) { sourceNode.stop(); sourceNode = null; } }
 
-    // --- PeerJS / 通信ロジック ---
+    // --- 通信 ---
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-        let res = '';
-        for (let i = 0; i < 8; i++) { res += chars.charAt(Math.floor(Math.random() * chars.length)); }
+        let res = ''; for (let i = 0; i < 8; i++) { res += chars.charAt(Math.floor(Math.random() * chars.length)); }
         return res;
     }
 
@@ -349,18 +304,14 @@
 
     function copyMyId() {
         navigator.clipboard.writeText(myId).then(() => {
-            const d = document.getElementById('my-id-display');
-            const old = d.innerText;
-            d.innerText = "コピー完了！";
-            setTimeout(() => d.innerText = old, 2000);
+            const d = document.getElementById('my-id-display'); const old = d.innerText;
+            d.innerText = "コピー完了！"; setTimeout(() => d.innerText = old, 2000);
         });
     }
 
     function startKeepAlive() {
         if (keepAliveTimer) clearInterval(keepAliveTimer);
-        keepAliveTimer = setInterval(() => {
-            if (conn && conn.open) { conn.send('PING'); }
-        }, 30000);
+        keepAliveTimer = setInterval(() => { if (conn && conn.open) { conn.send('PING'); } }, 30000);
     }
 
     peer.on('open', (id) => { 
@@ -374,44 +325,29 @@
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
         if (targetId && targetId.length === 8 && targetId !== myId) {
-            document.getElementById('peer-id').value = targetId;
-            connectToPeer(targetId);
+            document.getElementById('peer-id').value = targetId; connectToPeer(targetId);
         }
     });
 
-    peer.on('connection', (incomingConn) => { 
-        if (conn) conn.close();
-        conn = incomingConn; 
-        setupConnection(); 
-    });
+    peer.on('connection', (incomingConn) => { if (conn) conn.close(); conn = incomingConn; setupConnection(); });
 
     function connectToPeer(targetId) {
         const id = targetId || document.getElementById('peer-id').value.trim().toUpperCase();
         if(!id || id === myId) return;
-        if (conn) conn.close();
-        conn = peer.connect(id);
-        setupConnection();
+        if (conn) conn.close(); conn = peer.connect(id); setupConnection();
     }
 
     function setupConnection() {
         conn.on('open', () => { 
-            updateStatus(true); 
-            loadNewSound();
-            loadNewEmergencySound();
-            startKeepAlive();
+            updateStatus(true); loadNewSound(); loadNewEmergencySound(); startKeepAlive();
             setTimeout(toggleSettings, 1000);
         });
         conn.on('data', async (data) => {
             if (data === 'PING') return;
-            if (data === 'ON') startBuzzer();
-            else if (data === 'OFF') stopBuzzer();
-            else if (data === 'EMG_ON') startEmergencyActions();
-            else if (data === 'EMG_OFF') stopEmergencyActions();
+            if (data === 'ON') startBuzzer(); else if (data === 'OFF') stopBuzzer();
+            else if (data === 'EMG_ON') startEmergencyActions(); else if (data === 'EMG_OFF') stopEmergencyActions();
         });
-        conn.on('close', () => {
-            updateStatus(false);
-            if (keepAliveTimer) clearInterval(keepAliveTimer);
-        });
+        conn.on('close', () => { updateStatus(false); if (keepAliveTimer) clearInterval(keepAliveTimer); });
     }
 
     function updateStatus(isConnected) {
@@ -419,42 +355,23 @@
         document.getElementById('status').innerText = isConnected ? "接続完了！" : "待機中";
     }
 
-    // --- ブザー操作イベント（ズーム・スクロール徹底防止版） ---
+    // --- 操作イベント ---
     const area = document.getElementById('tap-area');
-
     area.addEventListener('pointerdown', (e) => {
-        // デフォルトのブラウザ挙動（ズーム、選択、スクロール）を殺す
         e.preventDefault(); 
         if (audioCtx.state === 'suspended') audioCtx.resume();
         startBuzzer();
         if (conn && conn.open) conn.send('ON');
     }, { passive: false });
 
-    area.addEventListener('pointerup', (e) => {
-        e.preventDefault();
-        stopBuzzer();
-        if (conn && conn.open) conn.send('OFF');
-    }, { passive: false });
-
-    // 指がボタンの外に滑り出た場合も音を止める
-    area.addEventListener('pointerleave', (e) => {
-        e.preventDefault();
-        stopBuzzer();
-        if (conn && conn.open) conn.send('OFF');
-    }, { passive: false });
+    area.addEventListener('pointerup', (e) => { e.preventDefault(); stopBuzzer(); if (conn && conn.open) conn.send('OFF'); }, { passive: false });
+    area.addEventListener('pointerleave', (e) => { e.preventDefault(); stopBuzzer(); if (conn && conn.open) conn.send('OFF'); }, { passive: false });
 
     window.addEventListener('load', () => {
-        loadNewSound();
-        loadNewEmergencySound();
-        preloadImages([
-            'emergency1_normal.png', 'emergency1_broken.png',
-            'emergency2_normal.png', 'emergency2_broken.png',
-            'buzzer1.png', 'buzzer2.png', 'buzzer3.png'
-        ]);
+        loadNewSound(); loadNewEmergencySound();
+        preloadImages(['emergency1_normal.png', 'emergency1_broken.png', 'emergency2_normal.png', 'emergency2_broken.png', 'buzzer1.png', 'buzzer2.png', 'buzzer3.png']);
         changeEmergencyImage();
     });
-
-    toggleSettings();
 </script>
 </body>
 </html>
