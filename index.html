@@ -302,12 +302,34 @@
         document.getElementById('settings-overlay').classList.toggle('open');
     }
 
-    function copyMyId() {
-        navigator.clipboard.writeText(myId).then(() => {
-            const d = document.getElementById('my-id-display'); const old = d.innerText;
-            d.innerText = "コピー完了！"; setTimeout(() => d.innerText = old, 2000);
-        });
+    async function copyMyId() {
+    const inviteText = `車掌さん！運転士さんがお待ちです。\nhttps://sidebound.github.io/buzzer-mc/?id=${myId}`;
+    
+    // 1. まずはクリップボードにコピー（従来通りの安心感）
+    try {
+        await navigator.clipboard.writeText(inviteText);
+        const d = document.getElementById('my-id-display');
+        const old = d.innerText;
+        d.innerText = "招待文をコピーしました！";
+        setTimeout(() => d.innerText = old, 2000);
+    } catch (err) {
+        console.error("コピー失敗ですわ：", err);
     }
+
+    // 2. もしブラウザが「共有機能」を持っていたら、メニューを出す
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'SideBound 列車合図',
+                text: '車掌さん！運転士さんがお待ちです。',
+                url: `https://sidebound.github.io/buzzer-mc/?id=${myId}`
+            });
+        } catch (err) {
+            // ユーザーが共有をキャンセルした場合は何もしなくてよろしくてよ
+            console.log("共有はキャンセルされましたわ。");
+        }
+    }
+}
 
     function startKeepAlive() {
         if (keepAliveTimer) clearInterval(keepAliveTimer);
