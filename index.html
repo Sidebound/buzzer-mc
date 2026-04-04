@@ -60,14 +60,18 @@
 
         #emergency-btn {
             width: 100%; height: 100%;
-            background-image: url('emergency_normal.png');
+            background-image: url('emergency1_normal.png');
             background-size: contain; background-repeat: no-repeat;
             position: relative;
             cursor: pointer;
         }
 
         #emergency-btn.broken {
-            background-image: url('emergency_broken.png');
+            background-image: url('emergency1
+                
+                
+                
+                _broken.png');
         }
 
         #emergency-flash-layer {
@@ -301,7 +305,7 @@
     function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
 
     loadSound('ブザー1.mp3', 'main');
-    loadSound('emergency.mp3', 'emergency');
+    loadSound('emergency1.mp3', 'emergency');
 
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
