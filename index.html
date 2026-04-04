@@ -26,7 +26,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * {
-            touch-action: none !important;
+            /* 基本的に全要素でダブルタップズームを抑制 */
+            touch-action: manipulation;
             -webkit-text-size-adjust: none;
             -webkit-user-select: none !important;
             user-select: none !important;
@@ -108,6 +109,8 @@
             transform: translate(-50%, -50%);
             width: 55%; height: 55%; border-radius: 50%;
             cursor: pointer; z-index: 5;
+            /* ブザーエリアはズームやスクロールを一切受け付けない */
+            touch-action: none !important;
         }
 
         /* --- 設定パネル --- */
@@ -232,7 +235,7 @@
     let audioBuffer = null, emergencyBuffer = null;
     let sourceNode = null, emergencySource = null;
     let isEmergencyActive = false;
-    let keepAliveTimer = null; // 【追加】接続維持タイマー用
+    let keepAliveTimer = null; 
 
     function preloadImages(urls) { urls.forEach(url => { const img = new Image(); img.src = url; }); }
 
@@ -252,35 +255,20 @@
         const type = document.getElementById('emg-image-select').value;
 
         if (!isEmergencyActive) { 
-            // 【発報側】
             isEmergencyActive = true;
-            btn.style.backgroundImage = `url('emergency${type}_broken.png')`; // ガラスを割る
-            
-            // 信号送信
+            btn.style.backgroundImage = `url('emergency${type}_broken.png')`; 
             if (conn && conn.open) conn.send('EMG_ON');
-            
             startEmergencyActions(); 
         } else { 
-            // 【復旧側】
             isEmergencyActive = false;
-            // ガラスは broken のまま維持する（掟）
-
             if (conn && conn.open) conn.send('EMG_OFF');
-            
             stopEmergencyActions(); 
         }
     }
 
     async function startEmergencyActions() {
-        // 点滅開始
         document.getElementById('emergency-container').classList.add('is-flashing');
-        
-        // 音声ロード確認
-        if (!emergencyBuffer) {
-            await loadNewEmergencySound();
-        }
-
-        // 音声ループ再生
+        if (!emergencyBuffer) await loadNewEmergencySound();
         if (emergencyBuffer) {
             if (audioCtx.state !== 'running') await audioCtx.resume();
             if (emergencySource) emergencySource.stop();
@@ -293,9 +281,7 @@
     }
 
     function stopEmergencyActions() {
-        // 点滅停止
         document.getElementById('emergency-container').classList.remove('is-flashing');
-        // 音声停止
         if (emergencySource) { 
             try { emergencySource.stop(); } catch(e) {} 
             emergencySource = null; 
@@ -307,16 +293,11 @@
         const btn = document.getElementById('emergency-btn');
         const flashLayer = document.getElementById('emergency-flash-layer');
         const config = EMG_CONFIG[type] || EMG_CONFIG["1"];
-        
         flashLayer.style.width = config.flashSize;
         flashLayer.style.height = config.flashSize;
         flashLayer.style.top = config.top;
-
-        if (!isEmergencyActive) {
-            btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
-        } else {
-            btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
-        }
+        if (!isEmergencyActive) btn.style.backgroundImage = `url('emergency${type}_normal.png')`;
+        else btn.style.backgroundImage = `url('emergency${type}_broken.png')`;
     }
 
     function loadNewEmergencySound() {
@@ -375,13 +356,10 @@
         });
     }
 
-    // 【追加】30秒ごとの生存確認信号
     function startKeepAlive() {
         if (keepAliveTimer) clearInterval(keepAliveTimer);
         keepAliveTimer = setInterval(() => {
-            if (conn && conn.open) {
-                conn.send('PING');
-            }
+            if (conn && conn.open) { conn.send('PING'); }
         }, 30000);
     }
 
@@ -390,11 +368,8 @@
         document.getElementById('copy-btn').style.display = "inline-flex";
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
         if (typeof QRCode !== 'undefined') {
-            if (!qrcode) {
-                qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 160, height: 160 });
-            } else {
-                qrcode.makeCode(inviteUrl);
-            }
+            if (!qrcode) qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 160, height: 160 });
+            else qrcode.makeCode(inviteUrl);
         }
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
@@ -423,25 +398,19 @@
             updateStatus(true); 
             loadNewSound();
             loadNewEmergencySound();
-            startKeepAlive(); // 【追加】接続時にタイマー開始
+            startKeepAlive();
             setTimeout(toggleSettings, 1000);
         });
         conn.on('data', async (data) => {
-            console.log("Data received:", data);
-            if (data === 'PING') return; // 【追加】PING信号は無視
-            
+            if (data === 'PING') return;
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
-            else if (data === 'EMG_ON') {
-                startEmergencyActions();
-            }
-            else if (data === 'EMG_OFF') { 
-                stopEmergencyActions(); 
-            }
+            else if (data === 'EMG_ON') startEmergencyActions();
+            else if (data === 'EMG_OFF') stopEmergencyActions();
         });
         conn.on('close', () => {
             updateStatus(false);
-            if (keepAliveTimer) clearInterval(keepAliveTimer); // 【追加】切断時にタイマー停止
+            if (keepAliveTimer) clearInterval(keepAliveTimer);
         });
     }
 
@@ -450,9 +419,29 @@
         document.getElementById('status').innerText = isConnected ? "接続完了！" : "待機中";
     }
 
+    // --- ブザー操作イベント（ズーム・スクロール徹底防止版） ---
     const area = document.getElementById('tap-area');
-    area.addEventListener('pointerdown', (e) => { e.preventDefault(); startBuzzer(); if (conn) conn.send('ON'); });
-    area.addEventListener('pointerup', () => { stopBuzzer(); if (conn) conn.send('OFF'); });
+
+    area.addEventListener('pointerdown', (e) => {
+        // デフォルトのブラウザ挙動（ズーム、選択、スクロール）を殺す
+        e.preventDefault(); 
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        startBuzzer();
+        if (conn && conn.open) conn.send('ON');
+    }, { passive: false });
+
+    area.addEventListener('pointerup', (e) => {
+        e.preventDefault();
+        stopBuzzer();
+        if (conn && conn.open) conn.send('OFF');
+    }, { passive: false });
+
+    // 指がボタンの外に滑り出た場合も音を止める
+    area.addEventListener('pointerleave', (e) => {
+        e.preventDefault();
+        stopBuzzer();
+        if (conn && conn.open) conn.send('OFF');
+    }, { passive: false });
 
     window.addEventListener('load', () => {
         loadNewSound();
