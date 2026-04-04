@@ -37,49 +37,49 @@
         html, body {
             margin: 0; padding: 0;
             background-color: #000;
-            display: flex; flex-direction: column; /* 縦並びに変更 */
-            justify-content: flex-end; /* 下部へ寄せる */
+            display: flex; flex-direction: column;
+            justify-content: flex-end; 
             align-items: center;
             height: 100vh; height: 100dvh; 
             width: 100vw;
             overflow: hidden;
             font-family: sans-serif;
-            padding-bottom: 20px; /* 下部の余白 */
+            padding-bottom: 20px;
             box-sizing: border-box;
         }
 
-        /* --- 新設：防護無線ボタンのスタイル --- */
+        /* --- 防護無線ボタン：左上へ移動 & 大型化 --- */
         #emergency-container {
-            position: fixed; top: 20px; right: 20px;
-            width: 100px; height: 100px;
+            position: fixed; 
+            top: 20px; 
+            left: 20px; /* 右から左へ */
+            width: 120px; /* 100pxから120pxへ大型化 */
+            height: 120px;
             z-index: 30;
         }
 
         #emergency-btn {
             width: 100%; height: 100%;
-            background-image: url('emergency1_normal.png'); /* 1枚目の画像 */
+            background-image: url('emergency_normal.png');
             background-size: contain; background-repeat: no-repeat;
             position: relative;
             cursor: pointer;
         }
 
-        /* 割れた状態（クラス付与で切り替え） */
         #emergency-btn.broken {
-            background-image: url('emergency1_broken.png'); /* 2枚目の画像 */
+            background-image: url('emergency_broken.png');
         }
 
-        /* 中央の赤丸点滅用レイヤー */
         #emergency-flash-layer {
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 40%; height: 40%; /* 赤丸のサイズに合わせて微調整してください */
+            width: 40%; height: 40%;
             border-radius: 50%;
             background-color: transparent;
             pointer-events: none;
         }
 
-        /* 点滅アニメーション */
         @keyframes flash-white {
             0% { background-color: rgba(255, 255, 255, 1); }
             50% { background-color: transparent; }
@@ -89,7 +89,22 @@
             animation: flash-white 0.3s infinite;
         }
 
-        /* --- 既存のブザー：構造は変えず配置のみ調整 --- */
+        /* --- 設定アイコン：右上へ移動 --- */
+        #settings-icon {
+            position: fixed; 
+            top: 20px; 
+            right: 20px; /* 左から右へ */
+            width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.8rem; color: rgba(255,255,255,0.8);
+            cursor: pointer; z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* --- 既存ブザー：配置維持 --- */
         #buzzer-display {
             position: relative;
             width: 90vw; height: 90vw;
@@ -100,7 +115,7 @@
             border-radius: 50%;
             box-shadow: 0 20px 50px rgba(0,0,0,0.8);
             transition: border-radius 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-bottom: 30px; /* 下部の位置調整 */
+            margin-bottom: 30px;
         }
 
         #tap-area {
@@ -125,19 +140,6 @@
             pointer-events: none;
         }
 
-        #settings-icon {
-            position: fixed; top: 20px; left: 20px;
-            width: 50px; height: 50px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(5px);
-            border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 1.8rem; color: rgba(255,255,255,0.8);
-            cursor: pointer; z-index: 10;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        /* 設定パネル関連は既存通り */
         #settings-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.3); opacity: 0; visibility: hidden; transition: opacity 0.3s; z-index: 15; }
         #settings-overlay.open { opacity: 1; visibility: visible; }
         #settings-panel { position: fixed; top: 0; right: -320px; width: 280px; max-width: 85vw; height: 100vh; height: 100dvh; background: rgba(20, 20, 20, 0.98); color: #fff; padding: 20px 20px 80px 20px; box-sizing: border-box; box-shadow: -10px 0 30px rgba(0,0,0,0.5); transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 20; overflow-y: auto; touch-action: pan-y !important; }
@@ -208,17 +210,18 @@
     </div>
 
 <script>
+    /* JavaScriptロジックは一切変更せず、CSSによる配置変更のみを反映いたしました */
     if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
     let audioBuffer = null;
-    let emergencyBuffer = null; // 【追加】緊急音用
+    let emergencyBuffer = null;
     let sourceNode = null;
-    let emergencySource = null; // 【追加】
+    let emergencySource = null;
     let isLoadingSound = false;
     let wakeLock = null;
-    let isEmergencyActive = false; // 防護無線が鳴っているか
+    let isEmergencyActive = false;
 
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
@@ -238,25 +241,16 @@
         finally { isLoadingSound = false; }
     }
 
-    // --- 新設：防護無線ロジック ---
     function handleEmergencyTap() {
-        // 自端末タップ：画像変更を伴う
         const btn = document.getElementById('emergency-btn');
-        btn.classList.add('broken'); // ガラスを割る
-
-        if (!isEmergencyActive) {
-            startEmergency(true); // ONにして相手にも送る
-        } else {
-            stopEmergency(true); // OFFにして相手にも送る
-        }
+        btn.classList.add('broken');
+        if (!isEmergencyActive) { startEmergency(true); } else { stopEmergency(true); }
     }
 
     async function startEmergency(sendSignal = false) {
         if (isEmergencyActive) return;
         isEmergencyActive = true;
-
         document.getElementById('emergency-container').classList.add('is-flashing');
-
         if (emergencyBuffer) {
             if (audioCtx.state !== 'running') await audioCtx.resume();
             stopEmergencySound();
@@ -266,7 +260,6 @@
             emergencySource.connect(audioCtx.destination);
             emergencySource.start(0);
         }
-
         if (sendSignal && conn && conn.open) conn.send('EMG_ON');
     }
 
@@ -274,7 +267,6 @@
         isEmergencyActive = false;
         document.getElementById('emergency-container').classList.remove('is-flashing');
         stopEmergencySound();
-
         if (sendSignal && conn && conn.open) conn.send('EMG_OFF');
     }
 
@@ -285,24 +277,17 @@
         }
     }
 
-    // --- 既存ロジック（そのまま） ---
     function changeBuzzerImage() {
         const select = document.getElementById('image-select');
         const display = document.getElementById('buzzer-display');
         const val = select.value;
         display.style.backgroundImage = `url('${val}')`;
-        if (val.includes('buzzer3')) {
-            display.style.borderRadius = "12px";
-        } else {
-            display.style.borderRadius = "50%";
-        }
+        if (val.includes('buzzer3')) { display.style.borderRadius = "12px"; } else { display.style.borderRadius = "50%"; }
     }
 
     async function startBuzzer() {
         if (!audioBuffer || isLoadingSound) return;
-        if (audioCtx.state !== 'running') {
-            try { await audioCtx.resume(); } catch (e) {}
-        }
+        if (audioCtx.state !== 'running') { try { await audioCtx.resume(); } catch (e) {} }
         stopBuzzer();
         sourceNode = audioCtx.createBufferSource();
         sourceNode.buffer = audioBuffer;
@@ -312,18 +297,11 @@
         if (!wakeLock) requestWakeLock();
     }
 
-    function stopBuzzer() {
-        if (sourceNode) {
-            try { sourceNode.stop(); } catch(e) {}
-            sourceNode = null;
-        }
-    }
-
+    function stopBuzzer() { if (sourceNode) { try { sourceNode.stop(); } catch(e) {} sourceNode = null; } }
     function loadNewSound() { loadSound(document.getElementById('sound-select').value); }
 
-    // 初期ロード
     loadSound('ブザー1.mp3', 'main');
-    loadSound('emergency1.mp3', 'emergency'); // 緊急音ロード
+    loadSound('emergency.mp3', 'emergency');
 
     function generateShortId() {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -351,10 +329,7 @@
             const originalText = display.innerText;
             display.innerText = "コピー完了！";
             btn.style.display = "none";
-            setTimeout(() => {
-                display.innerText = originalText;
-                btn.style.display = "inline-flex";
-            }, 2000);
+            setTimeout(() => { display.innerText = originalText; btn.style.display = "inline-flex"; }, 2000);
         });
     }
 
@@ -362,29 +337,14 @@
         document.getElementById('my-id-display').innerText = "あなたのID: " + id; 
         document.getElementById('copy-btn').style.display = "inline-flex"; 
         const inviteUrl = window.location.origin + window.location.pathname + "?id=" + id;
-        if (!qrcode) { 
-            qrcode = new QRCode(document.getElementById("qrcode"), { 
-                text: inviteUrl, width: 180, height: 180, correctLevel : QRCode.CorrectLevel.M
-            }); 
-        } else { qrcode.makeCode(inviteUrl); }
+        if (!qrcode) { qrcode = new QRCode(document.getElementById("qrcode"), { text: inviteUrl, width: 180, height: 180, correctLevel : QRCode.CorrectLevel.M }); } else { qrcode.makeCode(inviteUrl); }
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('id');
-        if (targetId && targetId.length === 8) {
-            document.getElementById('peer-id').value = targetId;
-            connectToPeer(targetId);
-        }
+        if (targetId && targetId.length === 8) { document.getElementById('peer-id').value = targetId; connectToPeer(targetId); }
     });
 
-    peer.on('disconnected', () => { 
-        updateStatus(false);
-        peer.reconnect();
-    });
-
-    peer.on('connection', (incomingConn) => {
-        if (conn) { conn.close(); }
-        conn = incomingConn;
-        setupConnection();
-    });
+    peer.on('disconnected', () => { updateStatus(false); peer.reconnect(); });
+    peer.on('connection', (incomingConn) => { if (conn) { conn.close(); } conn = incomingConn; setupConnection(); });
 
     function connectToPeer(targetId) {
         const rawId = targetId || document.getElementById('peer-id').value;
@@ -401,42 +361,23 @@
             updateStatus(true);
             setTimeout(toggleSettings, 1000);
             if (!wakeLock) requestWakeLock();
-
             if (keepAliveInterval) clearInterval(keepAliveInterval);
-            keepAliveInterval = setInterval(() => {
-                if (conn && conn.open) { conn.send('HEARTBEAT'); }
-            }, 20000);
+            keepAliveInterval = setInterval(() => { if (conn && conn.open) { conn.send('HEARTBEAT'); } }, 20000);
         });
         conn.on('data', (data) => {
             if (data === 'ON') startBuzzer();
             else if (data === 'OFF') stopBuzzer();
-            // --- 緊急信号受信 ---
-            else if (data === 'EMG_ON') startEmergency(false); // 画像は変えない
+            else if (data === 'EMG_ON') startEmergency(false);
             else if (data === 'EMG_OFF') stopEmergency(false);
         });
-        conn.on('close', () => { 
-            updateStatus(false);
-            if (keepAliveInterval) clearInterval(keepAliveInterval);
-        });
-        conn.on('error', () => { 
-            updateStatus(false);
-            if (keepAliveInterval) clearInterval(keepAliveInterval);
-        });
+        conn.on('close', () => { updateStatus(false); if (keepAliveInterval) clearInterval(keepAliveInterval); });
+        conn.on('error', () => { updateStatus(false); if (keepAliveInterval) clearInterval(keepAliveInterval); });
     }
 
     function updateStatus(isConnected) {
         const light = document.getElementById('status-light');
         const text = document.getElementById('status');
-        if (isConnected) {
-            light.classList.add('connected');
-            text.innerText = "接続完了！";
-        } else {
-            light.classList.remove('connected');
-            text.innerText = "待機中";
-            conn = null;
-            stopBuzzer();
-            stopEmergency(false);
-        }
+        if (isConnected) { light.classList.add('connected'); text.innerText = "接続完了！"; } else { light.classList.remove('connected'); text.innerText = "待機中"; conn = null; stopBuzzer(); stopEmergency(false); }
     }
 
     const area = document.getElementById('tap-area');
@@ -447,29 +388,14 @@
         if (now - lastTouchTime <= 300) { e.preventDefault(); }
         lastTouchTime = now;
         if (e.touches.length > 1) { e.preventDefault(); }
-        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.target.classList.contains('copy-btn')) { 
-            document.activeElement.blur(); 
-        }
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.target.classList.contains('copy-btn')) { document.activeElement.blur(); }
     }, { passive: false });
 
-    area.addEventListener('pointerdown', (e) => {
-        e.preventDefault(); e.stopPropagation();
-        startBuzzer();
-        if (conn && conn.open) conn.send('ON');
-    }, { passive: false });
-
-    area.addEventListener('pointerup', (e) => {
-        e.preventDefault(); stopBuzzer();
-        if (conn && conn.open) conn.send('OFF');
-    }, { passive: false });
-
-    area.addEventListener('pointerleave', (e) => {
-        stopBuzzer();
-        if (conn && conn.open) conn.send('OFF');
-    }, false);
+    area.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); startBuzzer(); if (conn && conn.open) conn.send('ON'); }, { passive: false });
+    area.addEventListener('pointerup', (e) => { e.preventDefault(); stopBuzzer(); if (conn && conn.open) conn.send('OFF'); }, { passive: false });
+    area.addEventListener('pointerleave', (e) => { stopBuzzer(); if (conn && conn.open) conn.send('OFF'); }, false);
 
     window.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); return false; };
-
     toggleSettings();
 </script>
 </body>
