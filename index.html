@@ -209,6 +209,23 @@
     </div>
 
 <script>
+    // --- 鉄道公安職：ソースコード保護セクション ---
+    (function() {
+        // 1. 右クリック禁止
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+        // 2. キーボードショートカット禁止 (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U)
+        document.addEventListener('keydown', (e) => {
+            if (
+                e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || 
+                (e.ctrlKey && e.key === 'U')
+            ) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    })();
     const EMG_CONFIG = { "1": { flashSize: "22%", top: "50%" }, "2": { flashSize: "32%", top: "57%" } };
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
